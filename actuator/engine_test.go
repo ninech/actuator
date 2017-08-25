@@ -1,4 +1,4 @@
-package api_test
+package frauschultz_test
 
 import (
 	"io/ioutil"
@@ -8,11 +8,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ninech/actuator/api"
+	"github.com/ninech/actuator/frauschultz"
 )
 
 func ServeRequest(method string, endpoint string) *httptest.ResponseRecorder {
-	server := api.GetMainEngine()
+	server := frauschultz.GetMainEngine()
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest(method, endpoint, nil)
 
