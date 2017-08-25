@@ -1,6 +1,7 @@
-package frauschultz
+package actuator
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -26,6 +27,13 @@ func endpointHealth(c *gin.Context) {
 }
 
 func endpointEvent(c *gin.Context) {
-	logger.Println("Received event.")
-	c.JSON(200, gin.H{"message": "Event received. Thank you."})
+	var event PullRequestEvent
+
+	if c.BindJSON(&event) == nil {
+		message := fmt.Sprintf("Event for pull request #%d received. Thank you.", event.Number)
+		logger.Println("Received event.")
+		c.JSON(200, gin.H{"message": message})
+	} else {
+		c.JSON(400, gin.H{"message": "Invalid JSON payload."})
+	}
 }
