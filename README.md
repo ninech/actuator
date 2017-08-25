@@ -19,3 +19,15 @@ Hello, I am actuator!
 | Endpoint           | Description     |
 | :----------------- | :-------------- |
 | `GET /v1/health`   | Returns status code `200` and a JSON formatted message if the server is running. |
+| `POST /v1/event`   | Post a [Github Pull Request event](https://developer.github.com/v3/activity/events/types/#pullrequestevent) and trigger the appropriate action. |
+
+## Development
+
+There is an example event payload in `examples/pull-request-event.json`. You can use that to test against the event handler API.
+
+    curl -vX POST http://localhost:8080/v1/event \
+         -d @examples/pull-request-event.json \
+         --header "Content-Type: application/json"
+
+    # or using HTTPie
+    http POST localhost:8080/v1/event @examples/pull-request-event.json
