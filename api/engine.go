@@ -1,6 +1,13 @@
 package api
 
-import "github.com/gin-gonic/gin"
+import (
+	"log"
+	"os"
+
+	"github.com/gin-gonic/gin"
+)
+
+var logger = log.New(os.Stdout, "", log.LstdFlags)
 
 // GetMainEngine constructs the main web engine for the API server
 func GetMainEngine() *gin.Engine {
@@ -19,5 +26,6 @@ func endpointHealth(c *gin.Context) {
 }
 
 func endpointEvent(c *gin.Context) {
+	logger.Println("Received event.")
 	c.JSON(200, gin.H{"message": "Event received. Thank you."})
 }
