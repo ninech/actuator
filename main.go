@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/ninech/frau-schultz/api"
+	"github.com/ninech/actuator/api"
 )
 
 // DefaultPort defines the app's default HTTP port
@@ -18,10 +18,10 @@ const DefaultPort = "8080"
 var srv *http.Server
 
 func main() {
-	fmt.Println("Hallo, ich bin Frau Schultz!")
+	fmt.Println("Startup sequence initiated ...")
 	serveRequests()
 	waitForQuitSignal()
-	log.Println("Frau Schultz sagt auf Wiedersehen ...")
+	log.Println("Device shutting down ...")
 	gracefullyStop(5 * time.Second)
 }
 

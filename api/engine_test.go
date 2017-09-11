@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ninech/frau-schultz/api"
+	"github.com/ninech/actuator/api"
 )
 
 func ServeRequest(method string, endpoint string) *httptest.ResponseRecorder {
