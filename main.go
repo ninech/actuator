@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/ninech/actuator/api"
+	"github.com/ninech/actuator/actuator"
 )
 
 // DefaultPort defines the app's default HTTP port
@@ -26,7 +26,7 @@ func main() {
 }
 
 func serveRequests() {
-	router := api.GetMainEngine()
+	router := actuator.GetMainEngine()
 
 	srv = &http.Server{
 		Addr:    ":" + DefaultPort,
