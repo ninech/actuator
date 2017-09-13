@@ -1,7 +1,6 @@
 package actuator
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -19,15 +18,21 @@ const (
 
 // WebhookEngine represents the main struct for the webhook application
 type WebhookEngine struct {
-	Logger *log.Logger
 }
+
+// Endpoint defines an interface for all web hook endpoints
+type Endpoint interface {
+	Handle(c *gin.Context) (int, interface{})
+}
+
+// Logger is the central logger for the actuator
+var Logger = log.New(os.Stdout, "", log.LstdFlags)
 
 // NewWebhookEngine builds a new webhook engine
 // It takes a gin mode as argument
 func NewWebhookEngine(mode string) WebhookEngine {
 	gin.SetMode(mode)
-	return WebhookEngine{
-		Logger: log.New(os.Stdout, "", log.LstdFlags)}
+	return WebhookEngine{}
 }
 
 // GetRouter constructs the main web engine for the API server
@@ -47,13 +52,8 @@ func (e *WebhookEngine) endpointHealth(c *gin.Context) {
 }
 
 func (e *WebhookEngine) endpointEvent(c *gin.Context) {
-	var event PullRequestEvent
-
-	if c.BindJSON(&event) == nil {
-		message := fmt.Sprintf("Event for pull request #%d received. Thank you.", event.Number)
-		e.Logger.Println("Received event.")
-		c.JSON(200, gin.H{"message": message})
-	} else {
-		c.JSON(400, gin.H{"message": "Invalid JSON payload."})
-	}
+	parser := GithubWebhookParser{request: c.Request}
+	eventEndpoint := EventEndpoint{WebhookParser: &parser}
+	code, message := eventEndpoint.Handle()
+	c.JSON(code, message)
 }
