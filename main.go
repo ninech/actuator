@@ -19,6 +19,11 @@ var srv *http.Server
 
 func main() {
 	fmt.Println("Startup sequence initiated ...")
+
+	if actuator.GithubToken = os.Getenv(actuator.GithubTokenEnvVariable); actuator.GithubToken == "" {
+		fmt.Printf("Warn: %s is not set.\n", actuator.GithubTokenEnvVariable)
+	}
+
 	serveRequests()
 	waitForQuitSignal()
 	log.Println("Device shutting down ...")

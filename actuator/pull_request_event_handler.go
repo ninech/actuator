@@ -1,6 +1,8 @@
 package actuator
 
 import (
+	"fmt"
+
 	"github.com/google/go-github/github"
 )
 
@@ -9,13 +11,22 @@ var SupportedPullRequestActions = [...]string{"opened", "closed", "reopened"}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
-	Event *github.PullRequestEvent
+	Event   *github.PullRequestEvent
+	Message string
+}
+
+// GetMessage returns the end message of this handler to be sent to the client
+func (h *PullRequestEventHandler) GetMessage() string {
+	if h.Event != nil && h.Message == "" {
+		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber())
+	}
+	return h.Message
 }
 
 // HandleEvent handles a pull request event from github
 func (h *PullRequestEventHandler) HandleEvent() error {
 	if !h.actionIsSupported() {
-		Logger.Println("event is not relevant and will be ignored")
+		h.Message = "Event is not relevant and will be ignored."
 		return nil
 	}
 
