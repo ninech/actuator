@@ -7,16 +7,18 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/ninech/actuator/actuator"
 	"github.com/stretchr/testify/assert"
 )
 
 func ServeRequest(method string, endpoint string, body string) *httptest.ResponseRecorder {
-	server := actuator.GetMainEngine()
+	engine := actuator.NewWebhookEngine(gin.TestMode)
+	router := engine.GetRouter()
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest(method, endpoint, strings.NewReader(body))
 
-	server.ServeHTTP(response, request)
+	router.ServeHTTP(response, request)
 
 	return response
 }

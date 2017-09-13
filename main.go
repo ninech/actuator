@@ -26,7 +26,8 @@ func main() {
 }
 
 func serveRequests() {
-	router := actuator.GetMainEngine()
+	engine := actuator.NewWebhookEngine(actuator.DebugMode)
+	router := engine.GetRouter()
 
 	srv = &http.Server{
 		Addr:    ":" + DefaultPort,
