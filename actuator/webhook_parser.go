@@ -18,7 +18,7 @@ type GithubWebhookParser struct {
 // ValidateAndParseWebhook validates a request from github against the token and
 // also parses the data into an internal event struct
 func (p *GithubWebhookParser) ValidateAndParseWebhook() (interface{}, error) {
-	payload, err := github.ValidatePayload(p.request, []byte(Config.GithubToken))
+	payload, err := github.ValidatePayload(p.request, []byte(Config.GithubWebhookSecret))
 	if err != nil {
 		return nil, err
 	}

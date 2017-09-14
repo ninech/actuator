@@ -9,8 +9,8 @@ import (
 // Config contains the actual configuration of the app
 var Config = Configuration{}
 
-// GithubTokenEnvVariable is the name of the environment variable to use for the token
-const GithubTokenEnvVariable = "ACTUATOR_GITHUB_TOKEN"
+// GithubWebhookSecretEnvVariable is the name of the environment variable to use for the token
+const GithubWebhookSecretEnvVariable = "ACTUATOR_WEBHOOK_SECRET"
 
 // Configuration contains all configuration options for the app
 type Configuration struct {
@@ -19,14 +19,14 @@ type Configuration struct {
 
 // LoadConfiguration loads the configuration into an internal struct
 func LoadConfiguration() error {
-	Config.LoadGithubToken()
+	Config.LoadGithubWebhookSecret()
 	return nil
 }
 
-// LoadGithubToken loads the github token from an environment variable
-func (c *Configuration) LoadGithubToken() {
-	c.GithubToken = os.Getenv(GithubTokenEnvVariable)
-	if c.GithubToken == "" {
-		color.Yellow("Warning: %s is not set.\n", GithubTokenEnvVariable)
+// LoadGithubWebhookSecret loads the github token from an environment variable
+func (c *Configuration) LoadGithubWebhookSecret() {
+	c.GithubWebhookSecret = os.Getenv(GithubWebhookSecretEnvVariable)
+	if c.GithubWebhookSecret == "" {
+		color.Yellow("Warning: %s is not set.\n", GithubWebhookSecretEnvVariable)
 	}
 }

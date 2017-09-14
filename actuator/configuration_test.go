@@ -12,12 +12,12 @@ func TestLoadConfiguration(t *testing.T) {
 	assert.Nil(t, actuator.LoadConfiguration())
 }
 
-func TestLoadGithubTokenFromEnvironment(t *testing.T) {
-	os.Setenv(actuator.GithubTokenEnvVariable, "superyolo")
+func TestLoadGithubWebhookSecretFromEnvironment(t *testing.T) {
+	os.Setenv(actuator.GithubWebhookSecretEnvVariable, "superyolo")
 
 	config := actuator.Configuration{}
-	config.LoadGithubToken()
-	assert.Equal(t, "superyolo", config.GithubToken)
+	config.LoadGithubWebhookSecret()
+	assert.Equal(t, "superyolo", config.GithubWebhookSecret)
 
-	os.Setenv(actuator.GithubTokenEnvVariable, "")
+	os.Setenv(actuator.GithubWebhookSecretEnvVariable, "")
 }
