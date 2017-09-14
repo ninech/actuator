@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var fs = afero.NewMemMapFs()
-
 // LoadConfiguration
 
 func TestLoadConfiguration(t *testing.T) {
@@ -21,10 +19,11 @@ func TestLoadConfiguration(t *testing.T) {
 
 func TestLoadConfigFileNotFound(t *testing.T) {
 	config := actuator.Configuration{}
-	assert.Nil(t, config.LoadConfigFile(fs, &config))
+	assert.Nil(t, config.LoadConfigFile(afero.NewMemMapFs(), &config))
 }
 
 func TestLoadConfigFileValidFile(t *testing.T) {
+	fs := afero.NewMemMapFs()
 	file, _ := fs.Create(actuator.ConfigFileName)
 	file.WriteString("---\ngithub_webhook_secret: abcd")
 
@@ -36,6 +35,7 @@ func TestLoadConfigFileValidFile(t *testing.T) {
 }
 
 func TestLoadConfigFileInvalidYaml(t *testing.T) {
+	fs := afero.NewMemMapFs()
 	file, _ := fs.Create(actuator.ConfigFileName)
 	file.WriteString("1234")
 
@@ -46,6 +46,7 @@ func TestLoadConfigFileInvalidYaml(t *testing.T) {
 }
 
 func TestLoadConfigFileRepositories(t *testing.T) {
+	fs := afero.NewMemMapFs()
 	file, _ := fs.Create(actuator.ConfigFileName)
 	file.WriteString(`---
 repositories:
