@@ -1,23 +1,18 @@
-FROM golang:1.9 AS build
-
-RUN go-wrapper download github.com/gin-gonic/gin
-RUN go-wrapper download github.com/google/go-github/github
-RUN go-wrapper download github.com/spf13/afero
+FROM golang:1.9
 
 WORKDIR /go/src/actuator
+
 COPY . ./
 
-RUN go-wrapper download
-RUN go install
-
-
-#### RUN IMAGE #######
-FROM debian:stretch AS run
+RUN    go-wrapper download \
+    && go-wrapper install \
+    && mkdir /actuator \
+    && cp /go/bin/actuator /actuator/ \
+    && cp /go/src/actuator/actuator.yml /actuator/ \
+    && rm -rf /go/src
 
 WORKDIR /actuator
-COPY --from=build /go/bin/actuator .
-COPY actuator.yml .
 
-USER 1000
+USER 10000
 EXPOSE 8080
-CMD "/actuator/actuator"
+CMD ["/actuator/actuator"]
