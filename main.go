@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/ninech/actuator/actuator"
 )
 
@@ -20,8 +21,9 @@ var srv *http.Server
 func main() {
 	fmt.Println("Startup sequence initiated ...")
 
-	if actuator.GithubToken = os.Getenv(actuator.GithubTokenEnvVariable); actuator.GithubToken == "" {
-		fmt.Printf("Warn: %s is not set.\n", actuator.GithubTokenEnvVariable)
+	if err := actuator.LoadConfiguration(); err != nil {
+		color.Red(err.Error())
+		os.Exit(1)
 	}
 
 	serveRequests()

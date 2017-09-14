@@ -1,0 +1,6 @@
+---
+github_webhook_secret: supersecret
+repositories:
+- enabled: true
+  fullname: ninech/actuator
+  exclude: master
