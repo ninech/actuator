@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/ninech/actuator/actuator"
 )
 
@@ -19,7 +20,12 @@ var srv *http.Server
 
 func main() {
 	fmt.Println("Startup sequence initiated ...")
-	actuator.LoadConfiguration()
+
+	if err := actuator.LoadConfiguration(); err != nil {
+		color.Red(err.Error())
+		os.Exit(1)
+	}
+
 	serveRequests()
 	waitForQuitSignal()
 	log.Println("Device shutting down ...")
