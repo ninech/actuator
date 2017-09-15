@@ -26,9 +26,10 @@ type Configuration struct {
 // RepositoryConfig contains configuration for each repository for which events
 // are being received.
 type RepositoryConfig struct {
-	Enabled  bool   `yaml:"enabled,omitempty"` // Run actuator for this repo?
-	Fullname string `yaml:"fullname"`          // Full name of the repository. ex. ninech/actuator
-	Exclude  string `yaml:"exclude,omitempty"` // Pattern to exclude branches. ex. ^master$
+	Enabled  bool   `yaml:"enabled"`  // Run actuator for this repo?
+	Fullname string `yaml:"fullname"` // Full name of the repository. ex. ninech/actuator
+	Exclude  string `yaml:"exclude"`  // Pattern to exclude branches. ex. ^master$
+	Template string `yaml:"template"` // Defines the openshift template to apply
 }
 
 // LoadConfiguration loads the configuration into an internal struct
@@ -71,5 +72,15 @@ func (c *Configuration) LoadConfigFile(fs afero.Fs, config *Configuration) error
 		return err
 	}
 
+	return nil
+}
+
+// GetRepositoryConfig returns the configuration for the repository with the given name
+func (c *Configuration) GetRepositoryConfig(fullname string) *RepositoryConfig {
+	for _, repo := range c.Repositories {
+		if repo.Fullname == fullname {
+			return &repo
+		}
+	}
 	return nil
 }

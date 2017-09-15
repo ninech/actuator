@@ -4,15 +4,24 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/github"
+	"github.com/ninech/actuator/openshift"
 )
 
 // SupportedPullRequestActions defines all pull request event actions which are supported by this app.
-var SupportedPullRequestActions = [...]string{"opened", "closed", "reopened"}
+const (
+	ActionOpened   = "opened"
+	ActionClosed   = "closed"
+	ActionReopened = "reopened"
+)
+
+// SupportedPullRequestActions defines all actions which are currently supported to be handled
+var SupportedPullRequestActions = [1]string{ActionOpened}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
 	Event   *github.PullRequestEvent
 	Message string
+	Config  Configuration
 }
 
 // GetMessage returns the end message of this handler to be sent to the client
@@ -30,7 +39,18 @@ func (h *PullRequestEventHandler) HandleEvent() error {
 		return nil
 	}
 
-	// TODO: Implement the handling of this specific event
+	repositoryName := h.Event.Repo.GetFullName()
+	repositoryConfig := h.Config.GetRepositoryConfig(repositoryName)
+	if repositoryConfig == nil {
+		h.Message = fmt.Sprintf("Repository %s is not configured. Doing nothing.", repositoryName)
+		return nil
+	}
+
+	switch h.Event.GetAction() {
+	case ActionOpened:
+		openshift.Cli.NewApp(repositoryConfig.Template, openshift.TemplateParameters{})
+		break
+	}
 
 	return nil
 }
