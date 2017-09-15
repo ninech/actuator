@@ -60,7 +60,7 @@ func TestFailingEventHandler(t *testing.T) {
 	parser.SetEventData(1, "opened")
 
 	code, message := endpoint.Handle()
-	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, http.StatusInternalServerError, code)
 	assert.Equal(t, gin.H{"message": "something went wrong"}, message)
 }
 

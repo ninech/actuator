@@ -37,11 +37,13 @@ func (e *EventEndpoint) Handle() (int, interface{}) {
 		e.EventHandler = eventHandler
 	}
 
-	if handleError := e.EventHandler.HandleEvent(); handleError == nil {
-		return 200, gin.H{"message": e.EventHandler.GetMessage()}
-	} else {
-		return 200, gin.H{"message": handleError.Error()}
+	handleError := e.EventHandler.HandleEvent()
+	if handleError != nil {
+		Logger.Println(handleError.Error())
+		return 500, gin.H{"message": handleError.Error()}
 	}
+
+	return 200, gin.H{"message": e.EventHandler.GetMessage()}
 }
 
 func (e *EventEndpoint) getHandlerForEvent(event interface{}) EventHandler {
