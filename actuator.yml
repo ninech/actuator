@@ -4,3 +4,8 @@ repositories:
 - enabled: true
   fullname: ninech/actuator
   exclude: master
+  template: knowledge-base
+- enabled: true
+  fullname: baxterthehacker/public-repo
+  exclude: master
+  template: yolotemplate

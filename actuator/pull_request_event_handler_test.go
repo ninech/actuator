@@ -36,13 +36,15 @@ func TestHandleEventRepositoryIsNotConfigured(t *testing.T) {
 	assert.Equal(t, "Repository ninech/yoloproject is not configured. Doing nothing.", handler.GetMessage())
 }
 
-func TestHandleEventActionOpened(t *testing.T) {
-	event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
-	handler := actuator.PullRequestEventHandler{Event: event, Config: testutils.NewDefaultConfig()}
+func TestHandleEventRepositoryIsDisabled(t *testing.T) {
+	config := testutils.NewDefaultConfig()
+	config.Repositories[0].Enabled = false
 
-	err := handler.HandleEvent()
-	assert.Nil(t, err)
-	// check apply template
+	event := testutils.NewTestEvent(1, actuator.ActionOpened, config.Repositories[0].Fullname)
+	handler := actuator.PullRequestEventHandler{Event: event, Config: config}
+
+	handler.HandleEvent()
+	assert.Contains(t, handler.GetMessage(), "is disabled.")
 }
 
 // actionIsSupported

@@ -46,10 +46,19 @@ func (h *PullRequestEventHandler) HandleEvent() error {
 		return nil
 	}
 
-	switch h.Event.GetAction() {
-	case ActionOpened:
-		openshift.Cli.NewApp(repositoryConfig.Template, openshift.TemplateParameters{})
-		break
+	if repositoryConfig.Enabled {
+		switch h.Event.GetAction() {
+		case ActionOpened:
+			output, err := openshift.NewAppFromTemplate(repositoryConfig.Template, openshift.TemplateParameters{})
+			if err != nil {
+				return err
+			} else {
+				Logger.Println(output)
+			}
+			break
+		}
+	} else {
+		h.Message = fmt.Sprintf("Repository %s is disabled. Doing nothing.", repositoryName)
 	}
 
 	return nil
