@@ -8,6 +8,9 @@ parameters:
   from: '[a-z0-9]{20}'
   generate: expression
   required: true
+- displayName: Github Access Token to post Pull Request comments on Github.
+  name: GITHUB_ACCESS_TOKEN
+  required: true
 - displayName: Domain
   name: ACTUATOR_DOMAIN
   required: true
@@ -122,6 +125,7 @@ objects:
   data:
     actuator.yml: |
       github_webhook_secret: ${GITHUB_WEBHOOK_SECRET}
+      github_access_token: ${GITHUB_ACCESS_TOKEN}
       repositories:
       - enabled: true
         fullname: ninech/actuator

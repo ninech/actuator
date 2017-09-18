@@ -19,8 +19,9 @@ const ConfigFileName = "actuator.yml"
 
 // Configuration contains all configuration options for the app
 type Configuration struct {
-	GithubWebhookSecret string             `yaml:"github_webhook_secret"`
-	Repositories        []RepositoryConfig `yaml:"repositories"`
+	GithubWebhookSecret string             `yaml:"github_webhook_secret"` // used to identify incomming webhooks
+	GithubAccessToken   string             `yaml:"github_access_token"`   // used to identify against the github api
+	Repositories        []RepositoryConfig `yaml:"repositories"`          // repository configurations
 }
 
 // RepositoryConfig contains configuration for each repository for which events
