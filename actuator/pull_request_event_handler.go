@@ -29,31 +29,20 @@ type PullRequestEventHandler struct {
 // ApplyOpenshiftTemplate creates new objects in openshift using a template
 var ApplyOpenshiftTemplate = openshift.NewAppFromTemplate
 
-// GetMessage returns the end message of this handler to be sent to the client
-func (h *PullRequestEventHandler) GetMessage() string {
-	if h.Event != nil && h.Message == "" {
-		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber())
-	}
-	return h.Message
-}
-
 // HandleEvent handles a pull request event from github
-func (h *PullRequestEventHandler) HandleEvent() error {
+func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 	if !h.actionIsSupported() {
-		h.Message = "Event is not relevant and will be ignored."
-		return nil
+		return "Event is not relevant and will be ignored.", nil
 	}
 
 	repositoryName := h.Event.Repo.GetFullName()
 	repositoryConfig := h.Config.GetRepositoryConfig(repositoryName)
 	if repositoryConfig == nil {
-		h.Message = fmt.Sprintf("Repository %s is not configured. Doing nothing.", repositoryName)
-		return nil
+		return fmt.Sprintf("Repository %s is not configured. Doing nothing.", repositoryName), nil
 	}
 
 	if !repositoryConfig.Enabled {
-		h.Message = fmt.Sprintf("Repository %s is disabled. Doing nothing.", repositoryName)
-		return nil
+		return fmt.Sprintf("Repository %s is disabled. Doing nothing.", repositoryName), nil
 	}
 
 	switch h.Event.GetAction() {
@@ -62,16 +51,14 @@ func (h *PullRequestEventHandler) HandleEvent() error {
 		// TODO: pass template params from config
 		output, err := ApplyOpenshiftTemplate(repositoryConfig.Template, openshift.TemplateParameters{}, labels)
 		if err != nil {
-			return err
+			return err.Error(), err
 		}
 
 		Logger.Println(output)
-		break
+		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber()), nil
 	default:
-		return errors.New("no action handled")
+		return "No handler for this action defined.", errors.New("no action handled")
 	}
-
-	return nil
 }
 
 // actionIsSupported returns true when the provided action is currently supported by the app

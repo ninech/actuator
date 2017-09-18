@@ -11,32 +11,14 @@ import (
 	"github.com/ninech/actuator/testutils"
 )
 
-func TestGetMessage(t *testing.T) {
-	t.Run("with message not set but event is set", func(t *testing.T) {
-		event := testutils.NewDefaultTestEvent()
-		handler := actuator.PullRequestEventHandler{Event: event}
-
-		assert.Equal(t, "Event for pull request #1 received. Thank you.", handler.GetMessage(),
-			"it sets the default message")
-	})
-
-	t.Run("with set message", func(t *testing.T) {
-		event := testutils.NewDefaultTestEvent()
-		handler := actuator.PullRequestEventHandler{Event: event, Message: "hello"}
-
-		assert.Equal(t, "hello", handler.GetMessage(),
-			"it returns the given message")
-	})
-}
-
 func TestHandleEvent(t *testing.T) {
 	t.Run("the event's repository is not configured", func(t *testing.T) {
 		event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/yoloproject")
 		handler := actuator.PullRequestEventHandler{Event: event}
 
-		err := handler.HandleEvent()
+		message, err := handler.HandleEvent()
 		assert.Nil(t, err)
-		assert.Equal(t, "Repository ninech/yoloproject is not configured. Doing nothing.", handler.GetMessage())
+		assert.Equal(t, "Repository ninech/yoloproject is not configured. Doing nothing.", message)
 	})
 
 	t.Run("the event repository is disabled in the config file", func(t *testing.T) {
@@ -46,8 +28,8 @@ func TestHandleEvent(t *testing.T) {
 		event := testutils.NewTestEvent(1, actuator.ActionOpened, config.Repositories[0].Fullname)
 		handler := actuator.PullRequestEventHandler{Event: event, Config: config}
 
-		handler.HandleEvent()
-		assert.Contains(t, handler.GetMessage(), "is disabled.")
+		message, _ := handler.HandleEvent()
+		assert.Contains(t, message, "is disabled.")
 	})
 
 	t.Run("event action opened", func(t *testing.T) {
@@ -57,14 +39,15 @@ func TestHandleEvent(t *testing.T) {
 
 		var templateInstantiated string
 		var labelsApplied openshift.ObjectLabels
-		actuator.NewAppFromTemplate = func(templateName string, templateParameters openshift.TemplateParameters, labels openshift.ObjectLabels) (string, error) {
+		actuator.ApplyOpenshiftTemplate = func(templateName string, templateParameters openshift.TemplateParameters, labels openshift.ObjectLabels) (string, error) {
 			templateInstantiated = templateName
 			labelsApplied = labels
 			return "", nil
 		}
 
-		err := handler.HandleEvent()
+		message, err := handler.HandleEvent()
 		assert.Nil(t, err)
+		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
 		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, templateInstantiated, "it instantiates the template from the config")
 
 		assert.Equal(t, labelsApplied["actuator.nine.ch/create-reason"], "GithubWebhook")
@@ -78,7 +61,7 @@ func TestActionIsSupported(t *testing.T) {
 		event := testutils.NewDefaultTestEvent()
 		handler := actuator.PullRequestEventHandler{Event: event}
 
-		err := handler.HandleEvent()
+		_, err := handler.HandleEvent()
 		assert.Nil(t, err)
 	})
 
@@ -86,7 +69,7 @@ func TestActionIsSupported(t *testing.T) {
 		event := testutils.NewTestEvent(1, "yolo", "ninech/actuator")
 		handler := actuator.PullRequestEventHandler{Event: event}
 
-		err := handler.HandleEvent()
+		_, err := handler.HandleEvent()
 		assert.Nil(t, err)
 	})
 }

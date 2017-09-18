@@ -7,8 +7,7 @@ import (
 
 // EventHandler defines an interface for all event handlers
 type EventHandler interface {
-	HandleEvent() error
-	GetMessage() string
+	HandleEvent() (string, error)
 }
 
 // EventEndpoint is an api endpoint to handle Github event webhooks.
@@ -37,13 +36,13 @@ func (e *EventEndpoint) Handle() (int, interface{}) {
 		e.EventHandler = eventHandler
 	}
 
-	handleError := e.EventHandler.HandleEvent()
+	message, handleError := e.EventHandler.HandleEvent()
 	if handleError != nil {
 		Logger.Println(handleError.Error())
-		return 500, gin.H{"message": handleError.Error()}
+		return 500, gin.H{"message": message}
 	}
 
-	return 200, gin.H{"message": e.EventHandler.GetMessage()}
+	return 200, gin.H{"message": message}
 }
 
 func (e *EventEndpoint) getHandlerForEvent(event interface{}) EventHandler {
