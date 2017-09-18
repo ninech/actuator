@@ -21,13 +21,21 @@ var SupportedPullRequestActions = [1]string{ActionOpened}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
-	Event   *github.PullRequestEvent
-	Message string
-	Config  Configuration
+	Event        *github.PullRequestEvent
+	Config       Configuration
+	GithubClient GithubClient
 }
 
 // ApplyOpenshiftTemplate creates new objects in openshift using a template
 var ApplyOpenshiftTemplate = openshift.NewAppFromTemplate
+
+// NewPullRequestEventHandler creates a new event handler for pull requests
+func NewPullRequestEventHandler(event *github.PullRequestEvent, config Configuration) *PullRequestEventHandler {
+	return &PullRequestEventHandler{
+		Event:        event,
+		Config:       config,
+		GithubClient: NewAuthenticatedGithubClient()}
+}
 
 // HandleEvent handles a pull request event from github
 func (h *PullRequestEventHandler) HandleEvent() (string, error) {
@@ -47,18 +55,47 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 
 	switch h.Event.GetAction() {
 	case ActionOpened:
-		labels := h.buildLabelsFromEvent(h.Event)
-		params := h.buildTemplateParamsFromEvent(h.Event)
-		output, err := ApplyOpenshiftTemplate(repositoryConfig.Template, params, labels)
-		if err != nil {
+		if err := h.CreateEnvironmentOnOpenshift(repositoryConfig.Template); err != nil {
+			return err.Error(), err
+		}
+		if err := h.PostCommentOnGithub("Your environment is being set-up on Openshift."); err != nil {
 			return err.Error(), err
 		}
 
-		Logger.Println(output)
 		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber()), nil
 	default:
 		return "No handler for this action defined.", errors.New("no action handled")
 	}
+}
+
+func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) error {
+	labels := h.buildLabelsFromEvent(h.Event)
+	params := h.buildTemplateParamsFromEvent(h.Event)
+	output, err := ApplyOpenshiftTemplate(template, params, labels)
+	if err != nil {
+		return err
+	}
+
+	Logger.Println(output)
+	return nil
+}
+
+func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
+	owner := h.Event.Repo.Owner.GetLogin()
+	repo := h.Event.Repo.GetName()
+	issueNumber := h.Event.PullRequest.GetNumber()
+
+	if h.GithubClient == nil {
+		panic("GithubClient is not set")
+	}
+
+	comment, err := h.GithubClient.CreateComment(owner, repo, issueNumber, body)
+	if err != nil {
+		return err
+	}
+
+	Logger.Printf("Created comment on Github: %v.\n", comment.GetHTMLURL())
+	return nil
 }
 
 // actionIsSupported returns true when the provided action is currently supported by the app
