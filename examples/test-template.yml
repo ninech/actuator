@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: actuator-test
+metadata:
+  annotations:
+    description: A test template for actuator
+  name: actuator-test
+objects:
+- apiVersion: v1
+  data:
+    testfile.txt: |
+      I was created by actuator for testing purposes.
+      BRANCH_NAME = ${BRANCH_NAME}
+      VAR_FROM_OUTSIDE = ${VAR_FROM_OUTSIDE}
+      RANDOM_VARIABLE = ${RANDOM_VARIABLE}
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: actuator
+    name: actuator-test-${RANDOM_VARIABLE}
+parameters:
+- displayName: The Git branch name.
+  name: BRANCH_NAME
+- displayName: Some variable to be set from the outside
+  name: VAR_FROM_OUTSIDE
+  value: The default value
+- displayName: A random variable
+  from: '[a-z0-9]{10}'
+  generate: expression
+  name: RANDOM_VARIABLE
+  required: true

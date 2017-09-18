@@ -51,8 +51,7 @@ func TestUnsupportedEventType(t *testing.T) {
 }
 
 func TestFailingEventHandler(t *testing.T) {
-	handler := MockGithubEventHandler{}
-	handler.Error = errors.New("something went wrong")
+	handler := MockGithubEventHandler{Error: errors.New("something went wrong")}
 	parser := MockGithubWebhookParser{ValidRequest: true}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
@@ -60,7 +59,7 @@ func TestFailingEventHandler(t *testing.T) {
 	parser.SetEventData(1, "opened")
 
 	code, message := endpoint.Handle()
-	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, http.StatusInternalServerError, code)
 	assert.Equal(t, gin.H{"message": "something went wrong"}, message)
 }
 
@@ -87,10 +86,10 @@ type MockGithubEventHandler struct {
 	Message string
 }
 
-func (h *MockGithubEventHandler) HandleEvent() error {
-	return h.Error
-}
-
-func (h *MockGithubEventHandler) GetMessage() string {
-	return h.Message
+func (h *MockGithubEventHandler) HandleEvent() (string, error) {
+	message := h.Message
+	if message == "" {
+		message = h.Error.Error()
+	}
+	return message, h.Error
 }

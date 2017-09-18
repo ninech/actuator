@@ -77,3 +77,20 @@ func TestLoadGithubWebhookSecretFromEnvironment(t *testing.T) {
 
 	os.Setenv(actuator.GithubWebhookSecretEnvVariable, "")
 }
+
+// GetRepositoryConfig
+
+func TestGetRepositoryConfig(t *testing.T) {
+	repoConfig := actuator.RepositoryConfig{Fullname: "ninech/actuator", Enabled: true}
+	repositories := []actuator.RepositoryConfig{repoConfig}
+	config := actuator.Configuration{Repositories: repositories}
+
+	assert.Equal(t, &repoConfig, config.GetRepositoryConfig("ninech/actuator"))
+}
+
+func TestGetRepositoryConfigNotFound(t *testing.T) {
+	repositories := []actuator.RepositoryConfig{}
+	config := actuator.Configuration{Repositories: repositories}
+
+	assert.Nil(t, config.GetRepositoryConfig("ninech/actuator"))
+}
