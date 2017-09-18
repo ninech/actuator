@@ -16,6 +16,21 @@ Hello, I am actuator!
 
 ## Openshift
 
+### Deploy Actuator
+
+Actuator can easily be deployed with the provided Openshift template.
+
+    oc create -f https://raw.githubusercontent.com/ninech/actuator/master/template.yml
+
+To make it able to create objects you need to provied the service account with the needed permissions.
+
+    oc policy add-role-to-user edit -z actuator
+
+After that you can change Actuator's configuration. Every change to the config needs a new deployment.
+
+    oc edit cm actuator
+    oc rollout latest actuator
+    
 ### Template Parameters
 
 The following parameters can be used in a template. They get automatically filled.
@@ -33,6 +48,8 @@ The following parameters can be used in a template. They get automatically fille
 
 ## Development
 
+### Call the hook
+
 There is an example event payload in `examples/pull-request-event.json`. You can use that to test against the event handler API.
 
     curl -vX POST http://localhost:8080/v1/event \
@@ -41,3 +58,17 @@ There is an example event payload in `examples/pull-request-event.json`. You can
 
     # or using HTTPie
     http POST localhost:8080/v1/event @examples/pull-request-event.json
+
+For the above noted commands to work you will need to provide a signed secret. To make that easier during development there is a wrapper script to calculate the signature from the secret and call the hook:
+
+    $ examples/send-event.rb
+
+### Test template
+
+First in your Openshift project import the sample template:
+
+    oc create -f examples/test-template.yml
+
+Whenever this template is applied there will be a new ConfigMap with a partly random name `actuator-test-*` in your project. These ConfigMaps can be deleted with the following command:
+
+    oc delete cm -l "actuator.nine.ch/create-reason"
