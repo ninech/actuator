@@ -48,8 +48,8 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 	switch h.Event.GetAction() {
 	case ActionOpened:
 		labels := h.buildLabelsFromEvent(h.Event)
-		// TODO: pass template params from config
-		output, err := ApplyOpenshiftTemplate(repositoryConfig.Template, openshift.TemplateParameters{}, labels)
+		params := h.buildTemplateParamsFromEvent(h.Event)
+		output, err := ApplyOpenshiftTemplate(repositoryConfig.Template, params, labels)
 		if err != nil {
 			return err.Error(), err
 		}
@@ -76,4 +76,9 @@ func (h *PullRequestEventHandler) buildLabelsFromEvent(event *github.PullRequest
 		"actuator.nine.ch/create-reason": "GithubWebhook",
 		"actuator.nine.ch/branch":        event.PullRequest.Head.GetRef(),
 		"actuator.nine.ch/pull-request":  strconv.Itoa(event.PullRequest.GetNumber())}
+}
+
+func (h *PullRequestEventHandler) buildTemplateParamsFromEvent(event *github.PullRequestEvent) openshift.TemplateParameters {
+	return openshift.TemplateParameters{
+		"BRANCH_NAME": event.PullRequest.Head.GetRef()}
 }

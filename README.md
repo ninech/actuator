@@ -14,6 +14,16 @@ Hello, I am actuator!
 [GIN] 2017/08/25 - 09:04:54 | 200 | 506.684µs | ::1 | GET /v1/health
 ```
 
+## Openshift
+
+### Template Parameters
+
+The following parameters can be used in a template. They get automatically filled.
+
+| Parameter          | Description     |
+| :----------------- | :-------------- |
+| `BRANCH_NAME`      | The name of the pull request branch. This is provided by the Github webhook event. |
+
 ## API
 
 | Endpoint           | Description     |

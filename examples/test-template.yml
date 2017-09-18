@@ -11,6 +11,7 @@ objects:
   data:
     testfile.txt: |
       I was created by actuator for testing purposes.
+      BRANCH_NAME = ${BRANCH_NAME}
       VAR_FROM_OUTSIDE = ${VAR_FROM_OUTSIDE}
       RANDOM_VARIABLE = ${RANDOM_VARIABLE}
   kind: ConfigMap
@@ -20,9 +21,10 @@ objects:
       app: actuator
     name: actuator-test-${RANDOM_VARIABLE}
 parameters:
+- displayName: The Git branch name.
+  name: BRANCH_NAME
 - displayName: Some variable to be set from the outside
   name: VAR_FROM_OUTSIDE
-  required: false
   value: The default value
 - displayName: A random variable
   from: '[a-z0-9]{10}'

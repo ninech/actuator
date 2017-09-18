@@ -37,22 +37,29 @@ func TestHandleEvent(t *testing.T) {
 		config := testutils.NewDefaultConfig()
 		handler := actuator.PullRequestEventHandler{Event: event, Config: config}
 
-		var templateInstantiated string
-		var labelsApplied openshift.ObjectLabels
+		var (
+			appliedTemplate   string
+			appliedLabels     openshift.ObjectLabels
+			appliedParameters openshift.TemplateParameters
+		)
 		actuator.ApplyOpenshiftTemplate = func(templateName string, templateParameters openshift.TemplateParameters, labels openshift.ObjectLabels) (string, error) {
-			templateInstantiated = templateName
-			labelsApplied = labels
+			appliedTemplate = templateName
+			appliedLabels = labels
+			appliedParameters = templateParameters
 			return "", nil
 		}
 
 		message, err := handler.HandleEvent()
+
 		assert.Nil(t, err)
 		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
-		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, templateInstantiated, "it instantiates the template from the config")
+		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, appliedTemplate, "it instantiates the template from the config")
 
-		assert.Equal(t, labelsApplied["actuator.nine.ch/create-reason"], "GithubWebhook")
-		assert.Equal(t, labelsApplied["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
-		assert.Equal(t, labelsApplied["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+		assert.Equal(t, appliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
+		assert.Equal(t, appliedLabels["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
+		assert.Equal(t, appliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+
+		assert.Equal(t, appliedParameters["BRANCH_NAME"], "pr-1")
 	})
 }
 
