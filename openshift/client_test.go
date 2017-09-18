@@ -54,13 +54,13 @@ func TestNewAppFromTemplate(t *testing.T) {
 		output, err := openshift.NewAppFromTemplate(
 			"actuator",
 			openshift.TemplateParameters{"PARAM1": "yolo"},
-			openshift.ObjectLabels{"label1": "value1", "label2": "value2"})
+			openshift.ObjectLabels{"label1": "value1"})
 
 		assert.Nil(t, err)
 		assert.Equal(t, "command executed\n", string(output))
 		assert.Equal(t, "oc", executer.CommandReceived)
 
-		expectedCommandArguments := []string{"new-app", "--template", "actuator", "--param", "PARAM1=yolo", "--labels", "label1=value1,label2=value2"}
+		expectedCommandArguments := []string{"new-app", "--template", "actuator", "--param", "PARAM1=yolo", "--labels", "label1=value1"}
 		assert.Equal(t, expectedCommandArguments, executer.ArgsReceived)
 	})
 }
