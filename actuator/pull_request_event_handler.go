@@ -1,7 +1,9 @@
 package actuator
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/google/go-github/github"
 	"github.com/ninech/actuator/openshift"
@@ -46,19 +48,24 @@ func (h *PullRequestEventHandler) HandleEvent() error {
 		return nil
 	}
 
-	if repositoryConfig.Enabled {
-		switch h.Event.GetAction() {
-		case ActionOpened:
-			output, err := openshift.NewAppFromTemplate(repositoryConfig.Template, openshift.TemplateParameters{})
-			if err != nil {
-				return err
-			} else {
-				Logger.Println(output)
-			}
-			break
-		}
-	} else {
+	if !repositoryConfig.Enabled {
 		h.Message = fmt.Sprintf("Repository %s is disabled. Doing nothing.", repositoryName)
+		return nil
+	}
+
+	switch h.Event.GetAction() {
+	case ActionOpened:
+		labels := h.buildLabelsFromEvent(h.Event)
+		// TODO: pass tempalte params from config
+		output, err := openshift.NewAppFromTemplate(repositoryConfig.Template, openshift.TemplateParameters{}, labels)
+		if err != nil {
+			return err
+		}
+
+		Logger.Println(output)
+		break
+	default:
+		return errors.New("no action handled")
 	}
 
 	return nil
@@ -72,4 +79,11 @@ func (h *PullRequestEventHandler) actionIsSupported() bool {
 		}
 	}
 	return false
+}
+
+func (h *PullRequestEventHandler) buildLabelsFromEvent(event *github.PullRequestEvent) openshift.ObjectLabels {
+	return openshift.ObjectLabels{
+		"actuator.nine.ch/create-reason": "GithubWebhook",
+		"actuator.nine.ch/branch":        event.PullRequest.Head.GetRef(),
+		"actuator.nine.ch/pull-request":  strconv.Itoa(event.PullRequest.GetNumber())}
 }

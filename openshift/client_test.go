@@ -35,8 +35,7 @@ func TestRunOcCommand(t *testing.T) {
 		_, err := openshift.RunOcCommand("")
 
 		assert.NotNil(t, err)
-		assert.Equal(t, "cat: /tmp/nonexistingfile.txt: No such file or directory\n", string(err.(*exec.ExitError).Stderr))
-		assert.Equal(t, "exit status 1", err.Error())
+		assert.Equal(t, "cat: /tmp/nonexistingfile.txt: No such file or directory\n", err.Error())
 	})
 }
 
@@ -46,19 +45,22 @@ func TestNewAppFromTemplate(t *testing.T) {
 	defer func() { openshift.ExecCommand = exec.Command }()
 
 	t.Run("empty template name", func(t *testing.T) {
-		_, err := openshift.NewAppFromTemplate("", openshift.TemplateParameters{})
+		_, err := openshift.NewAppFromTemplate("", openshift.TemplateParameters{}, openshift.ObjectLabels{})
 
 		assert.Equal(t, "a template name has to be set", err.Error())
 	})
 
 	t.Run("runs the command", func(t *testing.T) {
-		output, err := openshift.NewAppFromTemplate("actuator", openshift.TemplateParameters{"PARAM1": "yolo"})
+		output, err := openshift.NewAppFromTemplate(
+			"actuator",
+			openshift.TemplateParameters{"PARAM1": "yolo"},
+			openshift.ObjectLabels{"label1": "value1", "label2": "value2"})
 
 		assert.Nil(t, err)
 		assert.Equal(t, "command executed\n", string(output))
 		assert.Equal(t, "oc", executer.CommandReceived)
 
-		expectedCommandArguments := []string{"new-app", "--template", "actuator", "--param", "PARAM1=yolo"}
+		expectedCommandArguments := []string{"new-app", "--template", "actuator", "--param", "PARAM1=yolo", "--labels", "label1=value1,label2=value2"}
 		assert.Equal(t, expectedCommandArguments, executer.ArgsReceived)
 	})
 }

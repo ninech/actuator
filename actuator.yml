@@ -2,10 +2,8 @@
 github_webhook_secret: supersecret
 repositories:
 - enabled: true
-  fullname: ninech/actuator
-  exclude: master
-  template: knowledge-base
+  fullname: ninech/actuator-test
+  template: actuator-test
 - enabled: true
   fullname: baxterthehacker/public-repo
-  exclude: master
-  template: yolotemplate
+  template: actuator-test
