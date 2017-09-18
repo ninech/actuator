@@ -21,16 +21,14 @@ Hello, I am actuator!
 Actuator can easily be deployed with the provided Openshift template.
 
     oc create -f https://raw.githubusercontent.com/ninech/actuator/master/template.yml
-
-To make it able to create objects you need to provied the service account with the needed permissions.
-
+    oc new-app actuator -p ACTUATOR_DOMAIN=actuator.example.com
     oc policy add-role-to-user edit -z actuator
 
 After that you can change Actuator's configuration. Every change to the config needs a new deployment.
 
     oc edit cm actuator
     oc rollout latest actuator
-    
+
 ### Template Parameters
 
 The following parameters can be used in a template. They get automatically filled.
