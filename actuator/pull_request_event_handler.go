@@ -26,6 +26,9 @@ type PullRequestEventHandler struct {
 	Config  Configuration
 }
 
+// ApplyOpenshiftTemplate creates new objects in openshift using a template
+var ApplyOpenshiftTemplate = openshift.NewAppFromTemplate
+
 // GetMessage returns the end message of this handler to be sent to the client
 func (h *PullRequestEventHandler) GetMessage() string {
 	if h.Event != nil && h.Message == "" {
@@ -56,8 +59,8 @@ func (h *PullRequestEventHandler) HandleEvent() error {
 	switch h.Event.GetAction() {
 	case ActionOpened:
 		labels := h.buildLabelsFromEvent(h.Event)
-		// TODO: pass tempalte params from config
-		output, err := openshift.NewAppFromTemplate(repositoryConfig.Template, openshift.TemplateParameters{}, labels)
+		// TODO: pass template params from config
+		output, err := ApplyOpenshiftTemplate(repositoryConfig.Template, openshift.TemplateParameters{}, labels)
 		if err != nil {
 			return err
 		}

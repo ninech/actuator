@@ -10,7 +10,12 @@ import (
 
 func NewTestEvent(number int, action string, repoName string) *github.PullRequestEvent {
 	repo := github.Repository{FullName: &repoName}
-	return &github.PullRequestEvent{Action: &action, Number: &number, Repo: &repo}
+
+	branchName := "pr-1"
+	prNumber := 1408
+	pr := github.PullRequest{Number: &prNumber, Head: &github.PullRequestBranch{Ref: &branchName}}
+
+	return &github.PullRequestEvent{Action: &action, Number: &number, Repo: &repo, PullRequest: &pr}
 }
 
 func NewDefaultTestEvent() *github.PullRequestEvent {
