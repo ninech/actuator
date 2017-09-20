@@ -3,21 +3,13 @@ package openshift
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 )
 
-var ExecCommand = exec.Command
+var CommandExecutor Shell = OpenshiftShell{}
 
 // RunOcCommand runs an oc command with the given arguments
 func RunOcCommand(args ...string) (string, error) {
-	cmd := ExecCommand("oc", args...)
-
-	output, err := cmd.Output()
-	if exitError, ok := err.(*exec.ExitError); ok {
-		err = errors.New(string(exitError.Stderr))
-	}
-
-	return string(output), err
+	return CommandExecutor.RunWithArgs(args...)
 }
 
 // NewAppFromTemplate applies a template using the command `oc new-app`

@@ -1,7 +1,6 @@
 package openshift_test
 
 import (
-	"os/exec"
 	"testing"
 
 	"github.com/ninech/actuator/openshift"
@@ -11,38 +10,20 @@ import (
 
 func TestRunOcCommand(t *testing.T) {
 	t.Run("command succeeds", func(t *testing.T) {
-		executer := testutils.NewDefaultTestCommandExecuter()
-
-		openshift.ExecCommand = executer.ExecCommand
-		defer func() { openshift.ExecCommand = exec.Command }()
+		shell := &testutils.MockShell{OutputToReturn: "command executed"}
+		openshift.CommandExecutor = shell
 
 		output, err := openshift.RunOcCommand("additional", "args")
 
 		assert.Nil(t, err)
-		assert.Equal(t, "command executed\n", output, "should return the command output")
-		assert.Equal(t, "oc", executer.CommandReceived, "should run `oc` as the command")
-		assert.Equal(t, []string{"additional", "args"}, executer.ArgsReceived, "should receive the real oc arguments")
-	})
-
-	t.Run("command fails", func(t *testing.T) {
-		failingExecuter := testutils.TestCommandExecuter{
-			TestCommandToRun:     "cat",
-			TestCommandArguments: []string{"/tmp/nonexistingfile.txt"}}
-
-		openshift.ExecCommand = failingExecuter.ExecCommand
-		defer func() { openshift.ExecCommand = exec.Command }()
-
-		_, err := openshift.RunOcCommand("")
-
-		assert.NotNil(t, err)
-		assert.Equal(t, "cat: /tmp/nonexistingfile.txt: No such file or directory\n", err.Error())
+		assert.Equal(t, "command executed", output)
+		assert.Equal(t, []string{"additional", "args"}, shell.ReceivedArguments)
 	})
 }
 
 func TestNewAppFromTemplate(t *testing.T) {
-	executer := testutils.NewDefaultTestCommandExecuter()
-	openshift.ExecCommand = executer.ExecCommand
-	defer func() { openshift.ExecCommand = exec.Command }()
+	shell := &testutils.MockShell{OutputToReturn: "command executed"}
+	openshift.CommandExecutor = shell
 
 	t.Run("empty template name", func(t *testing.T) {
 		_, err := openshift.NewAppFromTemplate("", openshift.TemplateParameters{}, openshift.ObjectLabels{})
@@ -57,10 +38,9 @@ func TestNewAppFromTemplate(t *testing.T) {
 			openshift.ObjectLabels{"label1": "value1"})
 
 		assert.Nil(t, err)
-		assert.Equal(t, "command executed\n", string(output))
-		assert.Equal(t, "oc", executer.CommandReceived)
+		assert.Equal(t, "command executed", string(output))
 
 		expectedCommandArguments := []string{"new-app", "--template", "actuator", "--param", "PARAM1=yolo", "--labels", "label1=value1"}
-		assert.Equal(t, expectedCommandArguments, executer.ArgsReceived)
+		assert.Equal(t, expectedCommandArguments, shell.ReceivedArguments)
 	})
 }

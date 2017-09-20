@@ -2,7 +2,6 @@ package actuator
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -21,7 +20,6 @@ type AuthenticatedGithubClient struct {
 
 // NewAuthenticatedGithubClient produces a new, authenticated github client
 func NewAuthenticatedGithubClient() *AuthenticatedGithubClient {
-	fmt.Printf("Creating github client with token %s\n", Config.GithubAccessToken)
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: Config.GithubAccessToken})
 	tc := oauth2.NewClient(ctx, ts)
