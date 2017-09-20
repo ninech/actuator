@@ -11,8 +11,12 @@ import (
 // Config contains the actual configuration of the app
 var Config = Configuration{}
 
-// GithubWebhookSecretEnvVariable is the name of the environment variable to use for the token
-const GithubWebhookSecretEnvVariable = "ACTUATOR_WEBHOOK_SECRET"
+const (
+	// GithubWebhookSecretEnvVariable is the name of the environment variable to use for the secret
+	GithubWebhookSecretEnvVariable = "ACTUATOR_WEBHOOK_SECRET"
+	// GithubAccessTokenEnvVariable is the name of the environment variable to use for the access token
+	GithubAccessTokenEnvVariable = "ACTUATOR_GITHUB_ACCESS_TOKEN"
+)
 
 // ConfigFileName defines the name of the configuration file
 const ConfigFileName = "actuator.yml"
@@ -40,18 +44,28 @@ func LoadConfiguration() error {
 		return err
 	}
 
-	if Config.GithubWebhookSecret == "" {
-		Config.LoadGithubWebhookSecret()
-	}
+	Config.LoadGithubWebhookSecret()
+	Config.LoadGithubAccessToken()
 
 	return nil
 }
 
 // LoadGithubWebhookSecret loads the github token from an environment variable
 func (c *Configuration) LoadGithubWebhookSecret() {
-	c.GithubWebhookSecret = os.Getenv(GithubWebhookSecretEnvVariable)
+	secretFromEnv := os.Getenv(GithubWebhookSecretEnvVariable)
+	if secretFromEnv != "" {
+		c.GithubWebhookSecret = secretFromEnv
+	}
 	if c.GithubWebhookSecret == "" {
 		color.Yellow("Warning: %s is not set.\n", GithubWebhookSecretEnvVariable)
+	}
+}
+
+// LoadGithubAccessToken loads the github token from an environment variable
+func (c *Configuration) LoadGithubAccessToken() {
+	tokenFromEnv := os.Getenv(GithubAccessTokenEnvVariable)
+	if tokenFromEnv != "" {
+		c.GithubAccessToken = tokenFromEnv
 	}
 }
 
