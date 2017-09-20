@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"github.com/ninech/actuator/openshift"
@@ -26,18 +26,16 @@ type PullRequestEventHandler struct {
 	Event        *github.PullRequestEvent
 	Config       Configuration
 	GithubClient GithubClient
+	Openshift    openshift.OpenshiftClient
 }
-
-// ApplyOpenshiftTemplate creates new objects in openshift using a template
-var ApplyOpenshiftTemplate = openshift.NewAppFromTemplate
-var GetURLForRoute = openshift.GetURLForRoute
 
 // NewPullRequestEventHandler creates a new event handler for pull requests
 func NewPullRequestEventHandler(event *github.PullRequestEvent, config Configuration) *PullRequestEventHandler {
 	return &PullRequestEventHandler{
 		Event:        event,
 		Config:       config,
-		GithubClient: NewAuthenticatedGithubClient()}
+		GithubClient: NewAuthenticatedGithubClient(),
+		Openshift:    &openshift.CommandLineClient{}}
 }
 
 // HandleEvent handles a pull request event from github
@@ -63,18 +61,10 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 			return err.Error(), err
 		}
 
-		var commentBuffer bytes.Buffer
-		commentBuffer.WriteString("Your environment is being set-up on Openshift.")
-		routeName := h.ExtractRouteNameFromNewAppOutput(output)
-		if routeName != "" {
-			url, _ := GetURLForRoute(routeName)
-			commentBuffer.WriteString(url)
-		} else {
-			commentBuffer.WriteString(" There is no route I can point you to.")
-		}
-		commentText := commentBuffer.String()
+		routeName := output.RouteName()
+		comment := h.BuildCommentForRoute(routeName)
 
-		if err := h.PostCommentOnGithub(commentText); err != nil {
+		if err := h.PostCommentOnGithub(comment); err != nil {
 			return err.Error(), err
 		}
 
@@ -84,15 +74,15 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 	}
 }
 
-func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) (string, error) {
+func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) (*openshift.NewAppOutput, error) {
 	labels := h.buildLabelsFromEvent(h.Event)
 	params := h.buildTemplateParamsFromEvent(h.Event)
-	output, err := ApplyOpenshiftTemplate(template, params, labels)
+	output, err := h.Openshift.NewAppFromTemplate(template, params, labels)
 	if err != nil {
 		return output, err
 	}
 
-	Logger.Println(output)
+	Logger.Println(output.Raw)
 	return output, nil
 }
 
@@ -100,10 +90,6 @@ func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
 	owner := h.Event.Repo.Owner.GetLogin()
 	repo := h.Event.Repo.GetName()
 	issueNumber := h.Event.PullRequest.GetNumber()
-
-	if h.GithubClient == nil {
-		panic("GithubClient is not set")
-	}
 
 	comment, err := h.GithubClient.CreateComment(owner, repo, issueNumber, body)
 	if err != nil {
@@ -114,14 +100,20 @@ func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
 	return nil
 }
 
-// ExtractRouteNameFromNewAppOutput extracts the name of a route from the output of the newapp call
-func (h *PullRequestEventHandler) ExtractRouteNameFromNewAppOutput(output string) string {
-	r, _ := regexp.Compile(`route "([a-z-]+)" created`)
-	matches := r.FindStringSubmatch(output)
-	if len(matches) > 1 {
-		return r.FindStringSubmatch(output)[1]
+// BuildCommentForRoute tries to get the url for the route and compiles a comment
+func (h *PullRequestEventHandler) BuildCommentForRoute(routeName string) string {
+	var commentBuffer bytes.Buffer
+	commentBuffer.WriteString("Your environment is being set-up on Openshift.")
+
+	if routeName != "" {
+		url, _ := h.Openshift.GetURLForRoute(routeName)
+		commentBuffer.WriteString(" ")
+		commentBuffer.WriteString(url)
+	} else {
+		commentBuffer.WriteString(" There is no route I can point you to.")
 	}
-	return ""
+
+	return strings.TrimSpace(commentBuffer.String())
 }
 
 // actionIsSupported returns true when the provided action is currently supported by the app

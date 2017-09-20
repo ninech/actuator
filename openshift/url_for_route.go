@@ -9,14 +9,15 @@ import (
 type Route struct {
 	Spec RouteSpec
 }
+
 type RouteSpec struct {
 	Host string
 }
 
 // GetURLForRoute fetches data for a route and then extracts the domain name and returns it
-func GetURLForRoute(routeName string) (string, error) {
+func (c *CommandLineClient) GetURLForRoute(routeName string) (string, error) {
 	arguments := []string{"export", "-o", "yaml", "route", routeName}
-	output, err := RunOcCommand(arguments...)
+	output, err := c.RunOcCommand(arguments...)
 	if err != nil {
 		return "", err
 	}

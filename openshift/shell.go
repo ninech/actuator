@@ -11,7 +11,7 @@ type Shell interface {
 
 type OpenshiftShell struct{}
 
-func (s OpenshiftShell) RunWithArgs(args ...string) (string, error) {
+func (s *OpenshiftShell) RunWithArgs(args ...string) (string, error) {
 	cmd := exec.Command("oc", args...)
 
 	output, err := cmd.Output()

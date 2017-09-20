@@ -1,12 +1,14 @@
 package actuator_test
 
 import (
+	"io/ioutil"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ninech/actuator/actuator"
+	"github.com/ninech/actuator/openshift"
 	"github.com/ninech/actuator/testutils"
 )
 
@@ -41,55 +43,45 @@ func TestHandleEventFails(t *testing.T) {
 }
 
 func TestHandleEventActionOpened(t *testing.T) {
+	actuator.Logger.SetOutput(ioutil.Discard)
+
 	event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
 	config := testutils.NewDefaultConfig()
 	githubClient := testutils.NewMockGithubClient()
-	openshiftMock := testutils.OpenshiftMock{}
-	actuator.ApplyOpenshiftTemplate = openshiftMock.ApplyOpenshiftTemplate
+	openshiftClient := &testutils.OpenshiftMock{}
 
 	handler := actuator.PullRequestEventHandler{
 		Event:        event,
 		Config:       config,
-		GithubClient: githubClient}
+		GithubClient: githubClient,
+		Openshift:    openshiftClient}
 
 	t.Run("applies the template in openshift", func(t *testing.T) {
 		message, err := handler.HandleEvent()
-
 		assert.Nil(t, err)
 		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
-		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, openshiftMock.AppliedTemplate, "it instantiates the template from the config")
+		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
 
-		assert.Equal(t, openshiftMock.AppliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
-		assert.Equal(t, openshiftMock.AppliedLabels["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
-		assert.Equal(t, openshiftMock.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
 
-		assert.Equal(t, openshiftMock.AppliedParameters["BRANCH_NAME"], "pr-1")
+		assert.Equal(t, openshiftClient.AppliedParameters["BRANCH_NAME"], "pr-1")
 	})
 
 	t.Run("writes a comment on openshift", func(t *testing.T) {
+		handler.HandleEvent()
 		githubComment := githubClient.LastComment
 		assert.NotNil(t, githubComment, "creates a comment on github")
 		assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
 		assert.Equal(t, "https://github.com/ninech/actuator/issues/1408#issuecomment-330230087", githubComment.GetHTMLURL())
 	})
-}
 
-func TestExtractRouteNameFromNewAppOutput(t *testing.T) {
-	handler := actuator.PullRequestEventHandler{}
+	t.Run("posts the url as comment", func(t *testing.T) {
+		openshiftClient.NewAppOutputToReturn = openshift.NewAppOutput{Raw: `route "actuator" created`}
+		handler.HandleEvent()
 
-	t.Run("when there is a route to get", func(t *testing.T) {
-		output := `--> Creating resources with label actuator.nine.ch/branch=changes ...
-    route "actuator-changes" created
-    configmap "actuator-test-5ybwccanc4" created`
-
-		routeName := handler.ExtractRouteNameFromNewAppOutput(output)
-		assert.Equal(t, "actuator-changes", routeName)
+		githubComment := githubClient.LastComment
+		assert.Equal(t, "Your environment is being set-up on Openshift. http://actuator.domain.com", githubComment.GetBody())
 	})
-
-	t.Run("when there is no route", func(t *testing.T) {
-		output := `no route at all`
-		routeName := handler.ExtractRouteNameFromNewAppOutput(output)
-		assert.Empty(t, routeName)
-	})
-
 }

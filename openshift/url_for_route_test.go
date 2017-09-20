@@ -27,24 +27,27 @@ spec:
 status: {}`
 
 	t.Run("when the command works", func(t *testing.T) {
-		openshift.CommandExecutor = &testutils.MockShell{OutputToReturn: sampleRouteExport}
+		shell := &testutils.MockShell{OutputToReturn: sampleRouteExport}
+		openshiftClient := openshift.CommandLineClient{CommandExecutor: shell}
 
-		url, _ := openshift.GetURLForRoute("actuator")
+		url, _ := openshiftClient.GetURLForRoute("actuator")
 		assert.Equal(t, "http://actuator.openshift.nine.ch", url)
 	})
 
 	t.Run("when there is no such route", func(t *testing.T) {
-		openshift.CommandExecutor = &testutils.MockShell{ErrorToReturn: errors.New(`Error from server (NotFound): routes "actuator" not found`)}
+		shell := &testutils.MockShell{ErrorToReturn: errors.New(`Error from server (NotFound): routes "actuator" not found`)}
+		openshiftClient := openshift.CommandLineClient{CommandExecutor: shell}
 
-		url, err := openshift.GetURLForRoute("actuator")
+		url, err := openshiftClient.GetURLForRoute("actuator")
 		assert.Empty(t, url)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("when the yaml is not valid", func(t *testing.T) {
-		openshift.CommandExecutor = &testutils.MockShell{OutputToReturn: "12345"}
+		shell := &testutils.MockShell{OutputToReturn: "12345"}
+		openshiftClient := openshift.CommandLineClient{CommandExecutor: shell}
 
-		url, err := openshift.GetURLForRoute("actuator")
+		url, err := openshiftClient.GetURLForRoute("actuator")
 		assert.Empty(t, url)
 		assert.NotNil(t, err)
 	})
