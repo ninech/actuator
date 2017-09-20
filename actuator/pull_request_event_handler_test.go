@@ -69,7 +69,27 @@ func TestHandleEventActionOpened(t *testing.T) {
 	t.Run("writes a comment on openshift", func(t *testing.T) {
 		githubComment := githubClient.LastComment
 		assert.NotNil(t, githubComment, "creates a comment on github")
-		assert.Equal(t, "Your environment is being set-up on Openshift.", githubComment.GetBody())
+		assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
 		assert.Equal(t, "https://github.com/ninech/actuator/issues/1408#issuecomment-330230087", githubComment.GetHTMLURL())
 	})
+}
+
+func TestExtractRouteNameFromNewAppOutput(t *testing.T) {
+	handler := actuator.PullRequestEventHandler{}
+
+	t.Run("when there is a route to get", func(t *testing.T) {
+		output := `--> Creating resources with label actuator.nine.ch/branch=changes ...
+    route "actuator-changes" created
+    configmap "actuator-test-5ybwccanc4" created`
+
+		routeName := handler.ExtractRouteNameFromNewAppOutput(output)
+		assert.Equal(t, "actuator-changes", routeName)
+	})
+
+	t.Run("when there is no route", func(t *testing.T) {
+		output := `no route at all`
+		routeName := handler.ExtractRouteNameFromNewAppOutput(output)
+		assert.Empty(t, routeName)
+	})
+
 }

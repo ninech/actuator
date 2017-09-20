@@ -1,8 +1,10 @@
 package actuator
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/github"
@@ -28,6 +30,7 @@ type PullRequestEventHandler struct {
 
 // ApplyOpenshiftTemplate creates new objects in openshift using a template
 var ApplyOpenshiftTemplate = openshift.NewAppFromTemplate
+var GetURLForRoute = openshift.GetURLForRoute
 
 // NewPullRequestEventHandler creates a new event handler for pull requests
 func NewPullRequestEventHandler(event *github.PullRequestEvent, config Configuration) *PullRequestEventHandler {
@@ -55,10 +58,23 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 
 	switch h.Event.GetAction() {
 	case ActionOpened:
-		if err := h.CreateEnvironmentOnOpenshift(repositoryConfig.Template); err != nil {
+		output, err := h.CreateEnvironmentOnOpenshift(repositoryConfig.Template)
+		if err != nil {
 			return err.Error(), err
 		}
-		if err := h.PostCommentOnGithub("Your environment is being set-up on Openshift."); err != nil {
+
+		var commentBuffer bytes.Buffer
+		commentBuffer.WriteString("Your environment is being set-up on Openshift.")
+		routeName := h.ExtractRouteNameFromNewAppOutput(output)
+		if routeName != "" {
+			url, _ := GetURLForRoute(routeName)
+			commentBuffer.WriteString(url)
+		} else {
+			commentBuffer.WriteString(" There is no route I can point you to.")
+		}
+		commentText := commentBuffer.String()
+
+		if err := h.PostCommentOnGithub(commentText); err != nil {
 			return err.Error(), err
 		}
 
@@ -68,16 +84,16 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 	}
 }
 
-func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) error {
+func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) (string, error) {
 	labels := h.buildLabelsFromEvent(h.Event)
 	params := h.buildTemplateParamsFromEvent(h.Event)
 	output, err := ApplyOpenshiftTemplate(template, params, labels)
 	if err != nil {
-		return err
+		return output, err
 	}
 
 	Logger.Println(output)
-	return nil
+	return output, nil
 }
 
 func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
@@ -96,6 +112,16 @@ func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
 
 	Logger.Printf("Created comment on Github: %v.\n", comment.GetHTMLURL())
 	return nil
+}
+
+// ExtractRouteNameFromNewAppOutput extracts the name of a route from the output of the newapp call
+func (h *PullRequestEventHandler) ExtractRouteNameFromNewAppOutput(output string) string {
+	r, _ := regexp.Compile(`route "([a-z-]+)" created`)
+	matches := r.FindStringSubmatch(output)
+	if len(matches) > 1 {
+		return r.FindStringSubmatch(output)[1]
+	}
+	return ""
 }
 
 // actionIsSupported returns true when the provided action is currently supported by the app
