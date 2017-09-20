@@ -78,6 +78,18 @@ func TestLoadGithubWebhookSecretFromEnvironment(t *testing.T) {
 	os.Setenv(actuator.GithubWebhookSecretEnvVariable, "")
 }
 
+// LoadGithubAccessToken
+
+func TestLoadGithubAccessTokenFromEnvironment(t *testing.T) {
+	os.Setenv(actuator.GithubAccessTokenEnvVariable, "superyolo")
+
+	config := actuator.Configuration{}
+	config.LoadGithubAccessToken()
+	assert.Equal(t, "superyolo", config.GithubAccessToken)
+
+	os.Setenv(actuator.GithubAccessTokenEnvVariable, "")
+}
+
 // GetRepositoryConfig
 
 func TestGetRepositoryConfig(t *testing.T) {

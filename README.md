@@ -14,6 +14,19 @@ Hello, I am actuator!
 [GIN] 2017/08/25 - 09:04:54 | 200 | 506.684µs | ::1 | GET /v1/health
 ```
 
+## Configuration
+
+Most of the configuration happens in `actuator.yml`. There is an example config in this repo.
+
+You can also configure some values via environment variables:
+
+| Config                         | Description     |
+| :----------------------------- | :-------------- |
+| `ACTUATOR_WEBHOOK_SECRET`      | The webhook secret you share with Github. |
+| `ACTUATOR_GITHUB_ACCESS_TOKEN` | The Github access token to create comments on Github. |
+
+Environment variables take precedence of configurations from the config file!
+
 ## Openshift
 
 ### Deploy Actuator
