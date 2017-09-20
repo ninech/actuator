@@ -1,9 +1,11 @@
 package actuator
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"github.com/ninech/actuator/openshift"
@@ -21,13 +23,20 @@ var SupportedPullRequestActions = [1]string{ActionOpened}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
-	Event   *github.PullRequestEvent
-	Message string
-	Config  Configuration
+	Event        *github.PullRequestEvent
+	Config       Configuration
+	GithubClient GithubClient
+	Openshift    openshift.OpenshiftClient
 }
 
-// ApplyOpenshiftTemplate creates new objects in openshift using a template
-var ApplyOpenshiftTemplate = openshift.NewAppFromTemplate
+// NewPullRequestEventHandler creates a new event handler for pull requests
+func NewPullRequestEventHandler(event *github.PullRequestEvent, config Configuration) *PullRequestEventHandler {
+	return &PullRequestEventHandler{
+		Event:        event,
+		Config:       config,
+		GithubClient: NewAuthenticatedGithubClient(),
+		Openshift:    &openshift.CommandLineClient{}}
+}
 
 // HandleEvent handles a pull request event from github
 func (h *PullRequestEventHandler) HandleEvent() (string, error) {
@@ -47,18 +56,64 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 
 	switch h.Event.GetAction() {
 	case ActionOpened:
-		labels := h.buildLabelsFromEvent(h.Event)
-		params := h.buildTemplateParamsFromEvent(h.Event)
-		output, err := ApplyOpenshiftTemplate(repositoryConfig.Template, params, labels)
+		output, err := h.CreateEnvironmentOnOpenshift(repositoryConfig.Template)
 		if err != nil {
 			return err.Error(), err
 		}
 
-		Logger.Println(output)
+		routeName := output.RouteName()
+		comment := h.BuildCommentForRoute(routeName)
+
+		if err := h.PostCommentOnGithub(comment); err != nil {
+			return err.Error(), err
+		}
+
 		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber()), nil
 	default:
 		return "No handler for this action defined.", errors.New("no action handled")
 	}
+}
+
+func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) (*openshift.NewAppOutput, error) {
+	labels := h.buildLabelsFromEvent(h.Event)
+	params := h.buildTemplateParamsFromEvent(h.Event)
+	output, err := h.Openshift.NewAppFromTemplate(template, params, labels)
+	if err != nil {
+		return output, err
+	}
+
+	Logger.Println(output.Raw)
+	return output, nil
+}
+
+func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
+	owner := h.Event.Repo.Owner.GetLogin()
+	repo := h.Event.Repo.GetName()
+	issueNumber := h.Event.PullRequest.GetNumber()
+
+	comment, err := h.GithubClient.CreateComment(owner, repo, issueNumber, body)
+	if err != nil {
+		return err
+	}
+
+	Logger.Printf("Created comment on Github: %v.\n", comment.GetHTMLURL())
+	return nil
+}
+
+// BuildCommentForRoute tries to get the url for the route and compiles a comment
+func (h *PullRequestEventHandler) BuildCommentForRoute(routeName string) string {
+	var commentBuffer bytes.Buffer
+	commentBuffer.WriteString("Your environment is being set-up on Openshift.")
+
+	if routeName != "" {
+		url, _ := h.Openshift.GetURLForRoute(routeName)
+		commentBuffer.WriteString(" ")
+		commentBuffer.WriteString(url)
+	} else {
+		commentBuffer.WriteString(" There is no route I can point you to.")
+	}
+
+	return strings.TrimSpace(commentBuffer.String())
 }
 
 // actionIsSupported returns true when the provided action is currently supported by the app

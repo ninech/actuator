@@ -1,5 +1,6 @@
 ---
 github_webhook_secret: supersecret
+github_access_token: alsoverysecret
 repositories:
 - enabled: true
   fullname: ninech/actuator-test

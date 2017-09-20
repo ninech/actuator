@@ -21,7 +21,7 @@ Hello, I am actuator!
 Actuator can easily be deployed with the provided Openshift template.
 
     oc create -f https://raw.githubusercontent.com/ninech/actuator/master/template.yml
-    oc new-app actuator -p ACTUATOR_DOMAIN=actuator.example.com
+    oc new-app actuator -p ACTUATOR_DOMAIN=actuator.example.com -p GITHUB_ACCESS_TOKEN=<secret token from github>
     oc policy add-role-to-user edit -z actuator
 
 After that you can change Actuator's configuration. Every change to the config needs a new deployment.

@@ -48,7 +48,7 @@ func (e *EventEndpoint) Handle() (int, interface{}) {
 func (e *EventEndpoint) getHandlerForEvent(event interface{}) EventHandler {
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
-		return &PullRequestEventHandler{Event: event, Config: Config}
+		return NewPullRequestEventHandler(event, Config)
 	default:
 		return nil
 	}

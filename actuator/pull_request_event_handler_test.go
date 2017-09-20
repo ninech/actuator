@@ -8,12 +8,12 @@ import (
 
 	"github.com/ninech/actuator/actuator"
 	"github.com/ninech/actuator/openshift"
-	"github.com/ninech/actuator/testutils"
+	"github.com/ninech/actuator/test"
 )
 
-func TestHandleEvent(t *testing.T) {
+func TestHandleEventFails(t *testing.T) {
 	t.Run("the event's repository is not configured", func(t *testing.T) {
-		event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/yoloproject")
+		event := test.NewTestEvent(1, actuator.ActionOpened, "ninech/yoloproject")
 		handler := actuator.PullRequestEventHandler{Event: event}
 
 		message, err := handler.HandleEvent()
@@ -22,61 +22,65 @@ func TestHandleEvent(t *testing.T) {
 	})
 
 	t.Run("the event repository is disabled in the config file", func(t *testing.T) {
-		config := testutils.NewDefaultConfig()
+		config := test.NewDefaultConfig()
 		config.Repositories[0].Enabled = false
 
-		event := testutils.NewTestEvent(1, actuator.ActionOpened, config.Repositories[0].Fullname)
+		event := test.NewTestEvent(1, actuator.ActionOpened, config.Repositories[0].Fullname)
 		handler := actuator.PullRequestEventHandler{Event: event, Config: config}
 
 		message, _ := handler.HandleEvent()
 		assert.Contains(t, message, "is disabled.")
 	})
 
-	t.Run("event action opened", func(t *testing.T) {
-		event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
-		config := testutils.NewDefaultConfig()
-		handler := actuator.PullRequestEventHandler{Event: event, Config: config}
+	t.Run("the action is not supported", func(t *testing.T) {
+		event := test.NewTestEvent(1, "yolo", "ninech/actuator")
+		handler := actuator.PullRequestEventHandler{Event: event}
 
-		var (
-			appliedTemplate   string
-			appliedLabels     openshift.ObjectLabels
-			appliedParameters openshift.TemplateParameters
-		)
-		actuator.ApplyOpenshiftTemplate = func(templateName string, templateParameters openshift.TemplateParameters, labels openshift.ObjectLabels) (string, error) {
-			appliedTemplate = templateName
-			appliedLabels = labels
-			appliedParameters = templateParameters
-			return "", nil
-		}
-
-		message, err := handler.HandleEvent()
-
+		_, err := handler.HandleEvent()
 		assert.Nil(t, err)
-		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
-		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, appliedTemplate, "it instantiates the template from the config")
-
-		assert.Equal(t, appliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
-		assert.Equal(t, appliedLabels["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
-		assert.Equal(t, appliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
-
-		assert.Equal(t, appliedParameters["BRANCH_NAME"], "pr-1")
 	})
 }
 
-func TestActionIsSupported(t *testing.T) {
-	t.Run("with supported action", func(t *testing.T) {
-		event := testutils.NewDefaultTestEvent()
-		handler := actuator.PullRequestEventHandler{Event: event}
+func TestHandleEventActionOpened(t *testing.T) {
+	test.DisableLogging()
 
-		_, err := handler.HandleEvent()
+	event := test.NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
+	config := test.NewDefaultConfig()
+	githubClient := test.NewMockGithubClient()
+	openshiftClient := &test.OpenshiftMock{}
+
+	handler := actuator.PullRequestEventHandler{
+		Event:        event,
+		Config:       config,
+		GithubClient: githubClient,
+		Openshift:    openshiftClient}
+
+	t.Run("applies the template in openshift", func(t *testing.T) {
+		message, err := handler.HandleEvent()
 		assert.Nil(t, err)
+		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
+		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
+
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+
+		assert.Equal(t, openshiftClient.AppliedParameters["BRANCH_NAME"], "pr-1")
 	})
 
-	t.Run("with unsupported action", func(t *testing.T) {
-		event := testutils.NewTestEvent(1, "yolo", "ninech/actuator")
-		handler := actuator.PullRequestEventHandler{Event: event}
+	t.Run("writes a comment on openshift", func(t *testing.T) {
+		handler.HandleEvent()
+		githubComment := githubClient.LastComment
+		assert.NotNil(t, githubComment, "creates a comment on github")
+		assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
+		assert.Equal(t, "https://github.com/ninech/actuator/issues/1408#issuecomment-330230087", githubComment.GetHTMLURL())
+	})
 
-		_, err := handler.HandleEvent()
-		assert.Nil(t, err)
+	t.Run("posts the url as comment", func(t *testing.T) {
+		openshiftClient.NewAppOutputToReturn = openshift.NewAppOutput{Raw: `route "actuator" created`}
+		handler.HandleEvent()
+
+		githubComment := githubClient.LastComment
+		assert.Equal(t, "Your environment is being set-up on Openshift. http://actuator.domain.com", githubComment.GetBody())
 	})
 }
