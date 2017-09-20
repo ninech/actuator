@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/github"
 	"github.com/ninech/actuator/actuator"
+	"github.com/ninech/actuator/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,6 +52,8 @@ func TestUnsupportedEventType(t *testing.T) {
 }
 
 func TestFailingEventHandler(t *testing.T) {
+	test.DisableLogging()
+
 	handler := MockGithubEventHandler{Error: errors.New("something went wrong")}
 	parser := MockGithubWebhookParser{ValidRequest: true}
 	endpoint := actuator.EventEndpoint{

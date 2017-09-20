@@ -1,7 +1,6 @@
 package actuator_test
 
 import (
-	"io/ioutil"
 	"strconv"
 	"testing"
 
@@ -9,12 +8,12 @@ import (
 
 	"github.com/ninech/actuator/actuator"
 	"github.com/ninech/actuator/openshift"
-	"github.com/ninech/actuator/testutils"
+	"github.com/ninech/actuator/test"
 )
 
 func TestHandleEventFails(t *testing.T) {
 	t.Run("the event's repository is not configured", func(t *testing.T) {
-		event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/yoloproject")
+		event := test.NewTestEvent(1, actuator.ActionOpened, "ninech/yoloproject")
 		handler := actuator.PullRequestEventHandler{Event: event}
 
 		message, err := handler.HandleEvent()
@@ -23,10 +22,10 @@ func TestHandleEventFails(t *testing.T) {
 	})
 
 	t.Run("the event repository is disabled in the config file", func(t *testing.T) {
-		config := testutils.NewDefaultConfig()
+		config := test.NewDefaultConfig()
 		config.Repositories[0].Enabled = false
 
-		event := testutils.NewTestEvent(1, actuator.ActionOpened, config.Repositories[0].Fullname)
+		event := test.NewTestEvent(1, actuator.ActionOpened, config.Repositories[0].Fullname)
 		handler := actuator.PullRequestEventHandler{Event: event, Config: config}
 
 		message, _ := handler.HandleEvent()
@@ -34,7 +33,7 @@ func TestHandleEventFails(t *testing.T) {
 	})
 
 	t.Run("the action is not supported", func(t *testing.T) {
-		event := testutils.NewTestEvent(1, "yolo", "ninech/actuator")
+		event := test.NewTestEvent(1, "yolo", "ninech/actuator")
 		handler := actuator.PullRequestEventHandler{Event: event}
 
 		_, err := handler.HandleEvent()
@@ -43,12 +42,12 @@ func TestHandleEventFails(t *testing.T) {
 }
 
 func TestHandleEventActionOpened(t *testing.T) {
-	actuator.Logger.SetOutput(ioutil.Discard)
+	test.DisableLogging()
 
-	event := testutils.NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
-	config := testutils.NewDefaultConfig()
-	githubClient := testutils.NewMockGithubClient()
-	openshiftClient := &testutils.OpenshiftMock{}
+	event := test.NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
+	config := test.NewDefaultConfig()
+	githubClient := test.NewMockGithubClient()
+	openshiftClient := &test.OpenshiftMock{}
 
 	handler := actuator.PullRequestEventHandler{
 		Event:        event,

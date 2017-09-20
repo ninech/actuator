@@ -1,4 +1,4 @@
-package testutils
+package test
 
 type MockShell struct {
 	OutputToReturn    string

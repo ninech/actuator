@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ninech/actuator/openshift"
-	"github.com/ninech/actuator/testutils"
+	"github.com/ninech/actuator/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +27,7 @@ spec:
 status: {}`
 
 	t.Run("when the command works", func(t *testing.T) {
-		shell := &testutils.MockShell{OutputToReturn: sampleRouteExport}
+		shell := &test.MockShell{OutputToReturn: sampleRouteExport}
 		openshiftClient := openshift.CommandLineClient{CommandExecutor: shell}
 
 		url, _ := openshiftClient.GetURLForRoute("actuator")
@@ -35,7 +35,7 @@ status: {}`
 	})
 
 	t.Run("when there is no such route", func(t *testing.T) {
-		shell := &testutils.MockShell{ErrorToReturn: errors.New(`Error from server (NotFound): routes "actuator" not found`)}
+		shell := &test.MockShell{ErrorToReturn: errors.New(`Error from server (NotFound): routes "actuator" not found`)}
 		openshiftClient := openshift.CommandLineClient{CommandExecutor: shell}
 
 		url, err := openshiftClient.GetURLForRoute("actuator")
@@ -44,7 +44,7 @@ status: {}`
 	})
 
 	t.Run("when the yaml is not valid", func(t *testing.T) {
-		shell := &testutils.MockShell{OutputToReturn: "12345"}
+		shell := &test.MockShell{OutputToReturn: "12345"}
 		openshiftClient := openshift.CommandLineClient{CommandExecutor: shell}
 
 		url, err := openshiftClient.GetURLForRoute("actuator")
