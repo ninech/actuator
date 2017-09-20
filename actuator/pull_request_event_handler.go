@@ -35,7 +35,7 @@ func NewPullRequestEventHandler(event *github.PullRequestEvent, config Configura
 		Event:        event,
 		Config:       config,
 		GithubClient: NewAuthenticatedGithubClient(),
-		Openshift:    &openshift.CommandLineClient{}}
+		Openshift:    openshift.NewCommandLineClient()}
 }
 
 // HandleEvent handles a pull request event from github
