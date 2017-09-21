@@ -18,7 +18,7 @@ func TestDeleteApp(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "command executed", output.Raw)
 
-		expectedCommandArguments := []string{"delete", "all", "--labels", "label1=value1"}
+		expectedCommandArguments := []string{"delete", "all", "-l", "label1=value1"}
 		assert.Equal(t, expectedCommandArguments, shell.ReceivedArguments)
 	})
 }
