@@ -2,6 +2,7 @@ package openshift
 
 type OpenshiftClient interface {
 	NewAppFromTemplate(string, TemplateParameters, ObjectLabels) (*NewAppOutput, error)
+	DeleteApp(labels *ObjectLabels) (*DeleteAppOutput, error)
 	GetURLForRoute(routeName string) (string, error)
 }
 

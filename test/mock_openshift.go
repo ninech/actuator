@@ -12,7 +12,10 @@ type OpenshiftMock struct {
 	AppliedLabels     openshift.ObjectLabels
 	AppliedParameters openshift.TemplateParameters
 
-	NewAppOutputToReturn openshift.NewAppOutput
+	DeletedLabels *openshift.ObjectLabels
+
+	NewAppOutputToReturn    openshift.NewAppOutput
+	DeleteAppOutputToReturn openshift.DeleteAppOutput
 }
 
 var ensureMockImplementsInterface openshift.OpenshiftClient = &OpenshiftMock{}
@@ -31,4 +34,10 @@ func (om *OpenshiftMock) GetURLForRoute(routeName string) (string, error) {
 		return fmt.Sprintf("http://%v.domain.com", routeName), nil
 	}
 	return "", nil
+}
+
+// DeleteApp mocks the delte operation
+func (om *OpenshiftMock) DeleteApp(labels *openshift.ObjectLabels) (*openshift.DeleteAppOutput, error) {
+	om.DeletedLabels = labels
+	return &om.DeleteAppOutputToReturn, nil
 }
