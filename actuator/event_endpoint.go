@@ -17,23 +17,22 @@ type EventEndpoint struct {
 	EventHandler  EventHandler
 }
 
+// NewEventEndpoint produces a new endpoint to handle github events
+func NewEventEndpoint() *EventEndpoint {
+	return &EventEndpoint{
+		WebhookParser: &GithubWebhookParser{},
+		EventHandler:  &GenericEventHandler{}}
+}
+
 // Handle parses the request into a github event and handles it
 func (e *EventEndpoint) Handle() (int, interface{}) {
-	if e.WebhookParser == nil {
-		panic("A webhook parser must be provided.")
-	}
-
 	event, err := e.WebhookParser.ValidateAndParseWebhook()
 	if err != nil {
 		return 400, gin.H{"message": err.Error()}
 	}
 
 	if e.EventHandler == nil {
-		eventHandler := e.getHandlerForEvent(event)
-		if eventHandler == nil {
-			return 200, gin.H{"message": "Not processing this type of event."}
-		}
-		e.EventHandler = eventHandler
+		e.EventHandler = e.getHandlerForEvent(event)
 	}
 
 	message, handleError := e.EventHandler.HandleEvent()
@@ -50,6 +49,6 @@ func (e *EventEndpoint) getHandlerForEvent(event interface{}) EventHandler {
 	case *github.PullRequestEvent:
 		return NewPullRequestEventHandler(event, Config)
 	default:
-		return nil
+		return &GenericEventHandler{}
 	}
 }

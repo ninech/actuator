@@ -60,18 +60,11 @@ The following parameters can be used in a template. They get automatically fille
 
 ### Call the hook
 
-There is an example event payload in `examples/pull-request-event.json`. You can use that to test against the event handler API.
+There is an example event payload in `examples/pull-request-event-opened.json`. You can use that to test against the event handler API.
 
-    curl -vX POST http://localhost:8080/v1/event \
-         -d @examples/pull-request-event.json \
-         --header "Content-Type: application/json"
+Because the event handler validates the HTTP request, there is a wrapper script to calculate the signature from the secret and call the hook:
 
-    # or using HTTPie
-    http POST localhost:8080/v1/event @examples/pull-request-event.json
-
-For the above noted commands to work you will need to provide a signed secret. To make that easier during development there is a wrapper script to calculate the signature from the secret and call the hook:
-
-    $ examples/send-event.rb
+    examples/send-event.rb -f examples/pull-request-event-opened.json -s supersecret
 
 ### Test template
 

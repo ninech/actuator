@@ -12,12 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNoParserDefined(t *testing.T) {
-	endpoint := actuator.EventEndpoint{}
-	assert.Panics(t, func() { endpoint.Handle() })
-}
-
-func TestValidRequestationFails(t *testing.T) {
+func TestValidateRequestFails(t *testing.T) {
 	parser := MockGithubWebhookParser{ValidRequest: false}
 	endpoint := actuator.EventEndpoint{WebhookParser: &parser}
 

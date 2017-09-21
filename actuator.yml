@@ -3,8 +3,5 @@ github_webhook_secret: supersecret
 github_access_token: alsoverysecret
 repositories:
 - enabled: true
-  fullname: ninech/actuator-test
-  template: actuator-test
-- enabled: true
-  fullname: baxterthehacker/public-repo
-  template: actuator-test
+  fullname: ninech/actuator-demo
+  template: actuator-demo

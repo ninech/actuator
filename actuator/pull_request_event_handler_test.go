@@ -84,3 +84,24 @@ func TestHandleEventActionOpened(t *testing.T) {
 		assert.Equal(t, "Your environment is being set-up on Openshift. http://actuator.domain.com", githubComment.GetBody())
 	})
 }
+
+func TestHandleEventActionClosed(t *testing.T) {
+	test.DisableLogging()
+
+	event := test.NewTestEvent(1, actuator.ActionClosed, "ninech/actuator")
+	config := test.NewDefaultConfig()
+	openshiftClient := &test.OpenshiftMock{}
+
+	handler := actuator.PullRequestEventHandler{
+		Event:     event,
+		Config:    config,
+		Openshift: openshiftClient}
+
+	t.Run("deletes the objects in openshift", func(t *testing.T) {
+		message, err := handler.HandleEvent()
+
+		assert.Nil(t, err)
+		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
+		assert.Equal(t, openshiftClient.DeletedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+	})
+}
