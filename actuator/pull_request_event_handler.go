@@ -19,7 +19,7 @@ const (
 )
 
 // SupportedPullRequestActions defines all actions which are currently supported to be handled
-var SupportedPullRequestActions = [1]string{ActionOpened}
+var SupportedPullRequestActions = [2]string{ActionOpened, ActionClosed}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
@@ -69,6 +69,14 @@ func (h *PullRequestEventHandler) HandleEvent() (string, error) {
 		}
 
 		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber()), nil
+
+	case ActionClosed:
+		_, err := h.DeleteEnvironmentOnOpenshift()
+		if err != nil {
+			return err.Error(), err
+		}
+		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.GetNumber()), nil
+
 	default:
 		return "No handler for this action defined.", errors.New("no action handled")
 	}
@@ -86,6 +94,17 @@ func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) 
 	return output, nil
 }
 
+// DeleteEnvironmentOnOpenshift deletes an environment on openshift based on the pull request number
+func (h *PullRequestEventHandler) DeleteEnvironmentOnOpenshift() (*openshift.DeleteAppOutput, error) {
+	pullRequestNumber := h.Event.PullRequest.GetNumber()
+	labels := openshift.ObjectLabels{"actuator.nine.ch/pull-request": strconv.Itoa(pullRequestNumber)}
+	output, err := h.Openshift.DeleteApp(&labels)
+
+	Logger.Println(output.Raw)
+	return output, err
+}
+
+// PostCommentOnGithub posts a comment on Github, based on data from the event
 func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
 	owner := h.Event.Repo.Owner.GetLogin()
 	repo := h.Event.Repo.GetName()

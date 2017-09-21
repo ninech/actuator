@@ -12,7 +12,7 @@ type OpenshiftMock struct {
 	AppliedLabels     openshift.ObjectLabels
 	AppliedParameters openshift.TemplateParameters
 
-	DeletedLabels *openshift.ObjectLabels
+	DeletedLabels openshift.ObjectLabels
 
 	NewAppOutputToReturn    openshift.NewAppOutput
 	DeleteAppOutputToReturn openshift.DeleteAppOutput
@@ -38,6 +38,6 @@ func (om *OpenshiftMock) GetURLForRoute(routeName string) (string, error) {
 
 // DeleteApp mocks the delte operation
 func (om *OpenshiftMock) DeleteApp(labels *openshift.ObjectLabels) (*openshift.DeleteAppOutput, error) {
-	om.DeletedLabels = labels
+	om.DeletedLabels = *labels
 	return &om.DeleteAppOutputToReturn, nil
 }
