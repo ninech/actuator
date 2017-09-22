@@ -91,11 +91,11 @@ func (c *Configuration) LoadConfigFile(fs afero.Fs, config *Configuration) error
 }
 
 // GetRepositoryConfig returns the configuration for the repository with the given name
-func (c *Configuration) GetRepositoryConfig(fullname string) *RepositoryConfig {
+func (c *Configuration) GetRepositoryConfig(fullname string) (RepositoryConfig, bool) {
 	for _, repo := range c.Repositories {
 		if repo.Fullname == fullname {
-			return &repo
+			return repo, true
 		}
 	}
-	return nil
+	return RepositoryConfig{Fullname: fullname, Enabled: false}, false
 }

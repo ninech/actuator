@@ -97,12 +97,19 @@ func TestGetRepositoryConfig(t *testing.T) {
 	repositories := []actuator.RepositoryConfig{repoConfig}
 	config := actuator.Configuration{Repositories: repositories}
 
-	assert.Equal(t, &repoConfig, config.GetRepositoryConfig("ninech/actuator"))
+	foundConfig, ok := config.GetRepositoryConfig("ninech/actuator")
+
+	assert.Equal(t, repoConfig, foundConfig)
+	assert.True(t, ok)
 }
 
 func TestGetRepositoryConfigNotFound(t *testing.T) {
 	repositories := []actuator.RepositoryConfig{}
 	config := actuator.Configuration{Repositories: repositories}
 
-	assert.Nil(t, config.GetRepositoryConfig("ninech/actuator"))
+	foundConfig, ok := config.GetRepositoryConfig("ninech/actuator")
+
+	assert.False(t, foundConfig.Enabled)
+	assert.Equal(t, "ninech/actuator", foundConfig.Fullname)
+	assert.False(t, ok)
 }

@@ -2,7 +2,6 @@ package actuator
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,80 +10,89 @@ import (
 	"github.com/ninech/actuator/openshift"
 )
 
-// SupportedPullRequestActions defines all pull request event actions which are supported by this app.
-const (
-	ActionOpened   = "opened"
-	ActionClosed   = "closed"
-	ActionReopened = "reopened"
-)
-
 // SupportedPullRequestActions defines all actions which are currently supported to be handled
-var SupportedPullRequestActions = [2]string{ActionOpened, ActionClosed}
+var SupportedPullRequestActions = [2]string{github.EventActionOpened, github.EventActionClosed}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
-	Event        *github.Event
-	Config       Configuration
-	GithubClient github.Client
-	Openshift    openshift.OpenshiftClient
+	RepositoryConfig RepositoryConfig
+	GithubClient     github.Client
+	Openshift        openshift.OpenshiftClient
 }
 
 // NewPullRequestEventHandler creates a new event handler for pull requests
-func NewPullRequestEventHandler(event *github.Event, config Configuration) *PullRequestEventHandler {
+func NewPullRequestEventHandler(event github.Event) *PullRequestEventHandler {
+	repositoryConfig, _ := Config.GetRepositoryConfig(event.RepositoryFullname)
+
 	return &PullRequestEventHandler{
-		Event:        event,
-		Config:       config,
-		GithubClient: github.NewAuthenticatedGithubClient(config.GithubAccessToken),
-		Openshift:    openshift.NewCommandLineClient()}
+		RepositoryConfig: repositoryConfig,
+		GithubClient:     github.NewAuthenticatedGithubClient(Config.GithubAccessToken),
+		Openshift:        openshift.NewCommandLineClient()}
+}
+
+// GetEventResponse validates the event and checks if it can be handled.
+func (h *PullRequestEventHandler) GetEventResponse(event *github.Event) *EventResponse {
+	response := &EventResponse{}
+
+	if event.Type != github.PullRequestEvent {
+		response.Message = "Invalid event for this handler."
+		return response
+	}
+
+	if !isActionSupported(event.Action) {
+		response.Message = "Event is not relevant and will be ignored."
+		return response
+	}
+
+	if !h.RepositoryConfig.Enabled {
+		response.Message = fmt.Sprintf("Repository %s is not configured or disabled. Doing nothing.", event.RepositoryFullname)
+		return response
+	}
+
+	response.Message = fmt.Sprintf("Event for pull request #%d received. Thank you.", event.IssueNumber)
+	response.HandleEvent = true
+	return response
 }
 
 // HandleEvent handles a pull request event from github
-func (h *PullRequestEventHandler) HandleEvent() (string, error) {
-	if !h.actionIsSupported() {
-		return "Event is not relevant and will be ignored.", nil
+func (h *PullRequestEventHandler) HandleEvent(event *github.Event) {
+	Logger.Printf("Starting to handle action %v.", event.Action)
+
+	var err error
+	switch event.Action {
+	case github.EventActionOpened:
+		err = h.HandleActionOpened(event)
+		break
+	case github.EventActionClosed:
+		labels := openshift.ObjectLabels{"actuator.nine.ch/pull-request": strconv.Itoa(event.IssueNumber)}
+		err = h.DeleteEnvironmentOnOpenshift(&labels)
+		break
 	}
 
-	repositoryName := h.Event.RepositoryFullname
-	repositoryConfig := h.Config.GetRepositoryConfig(repositoryName)
-	if repositoryConfig == nil {
-		return fmt.Sprintf("Repository %s is not configured. Doing nothing.", repositoryName), nil
-	}
-
-	if !repositoryConfig.Enabled {
-		return fmt.Sprintf("Repository %s is disabled. Doing nothing.", repositoryName), nil
-	}
-
-	switch h.Event.Action {
-	case ActionOpened:
-		output, err := h.CreateEnvironmentOnOpenshift(repositoryConfig.Template)
-		if err != nil {
-			return err.Error(), err
-		}
-
-		routeName := output.RouteName()
-		comment := h.BuildCommentForRoute(routeName)
-
-		if err := h.PostCommentOnGithub(comment); err != nil {
-			return err.Error(), err
-		}
-
-		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.IssueNumber), nil
-
-	case ActionClosed:
-		_, err := h.DeleteEnvironmentOnOpenshift()
-		if err != nil {
-			return err.Error(), err
-		}
-		return fmt.Sprintf("Event for pull request #%d received. Thank you.", h.Event.IssueNumber), nil
-
-	default:
-		return "No handler for this action defined.", errors.New("no action handled")
+	if err != nil {
+		Logger.Printf("There were some errors while handling the event.\n%v", err)
+	} else {
+		Logger.Printf("%v action handled without errors.", event.Action)
 	}
 }
 
-func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) (*openshift.NewAppOutput, error) {
-	labels := h.buildLabelsFromEvent(h.Event)
-	params := h.buildTemplateParamsFromEvent(h.Event)
+func (h *PullRequestEventHandler) HandleActionOpened(event *github.Event) error {
+	output, err := h.CreateEnvironmentOnOpenshift(event)
+	if err != nil {
+		return err
+	}
+
+	routeName := output.RouteName()
+	comment := h.BuildCommentForRoute(routeName)
+
+	return h.PostCommentOnGithub(event, comment)
+}
+
+func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(event *github.Event) (*openshift.NewAppOutput, error) {
+	template := h.RepositoryConfig.Template
+	labels := buildLabelsFromEvent(event)
+	params := buildTemplateParamsFromEvent(event)
+
 	output, err := h.Openshift.NewAppFromTemplate(template, params, labels)
 	if err != nil {
 		return output, err
@@ -95,20 +103,17 @@ func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(template string) 
 }
 
 // DeleteEnvironmentOnOpenshift deletes an environment on openshift based on the pull request number
-func (h *PullRequestEventHandler) DeleteEnvironmentOnOpenshift() (*openshift.DeleteAppOutput, error) {
-	pullRequestNumber := h.Event.IssueNumber
-	labels := openshift.ObjectLabels{"actuator.nine.ch/pull-request": strconv.Itoa(pullRequestNumber)}
-	output, err := h.Openshift.DeleteApp(&labels)
-
+func (h *PullRequestEventHandler) DeleteEnvironmentOnOpenshift(labels *openshift.ObjectLabels) error {
+	output, err := h.Openshift.DeleteApp(labels)
 	Logger.Println(output.Raw)
-	return output, err
+	return err
 }
 
 // PostCommentOnGithub posts a comment on Github, based on data from the event
-func (h *PullRequestEventHandler) PostCommentOnGithub(body string) error {
-	owner := h.Event.RepositoryOwner
-	repo := h.Event.RepositoryName
-	issueNumber := h.Event.IssueNumber
+func (h *PullRequestEventHandler) PostCommentOnGithub(event *github.Event, body string) error {
+	owner := event.RepositoryOwner
+	repo := event.RepositoryName
+	issueNumber := event.IssueNumber
 
 	comment, err := h.GithubClient.CreateComment(owner, repo, issueNumber, body)
 	if err != nil {
@@ -136,23 +141,23 @@ func (h *PullRequestEventHandler) BuildCommentForRoute(routeName string) string 
 }
 
 // actionIsSupported returns true when the provided action is currently supported by the app
-func (h *PullRequestEventHandler) actionIsSupported() bool {
+func isActionSupported(action string) bool {
 	for _, a := range SupportedPullRequestActions {
-		if a == h.Event.Action {
+		if a == action {
 			return true
 		}
 	}
 	return false
 }
 
-func (h *PullRequestEventHandler) buildLabelsFromEvent(event *github.Event) openshift.ObjectLabels {
+func buildLabelsFromEvent(event *github.Event) openshift.ObjectLabels {
 	return openshift.ObjectLabels{
 		"actuator.nine.ch/create-reason": "GithubWebhook",
 		"actuator.nine.ch/branch":        event.HeadRef,
 		"actuator.nine.ch/pull-request":  strconv.Itoa(event.IssueNumber)}
 }
 
-func (h *PullRequestEventHandler) buildTemplateParamsFromEvent(event *github.Event) openshift.TemplateParameters {
+func buildTemplateParamsFromEvent(event *github.Event) openshift.TemplateParameters {
 	return openshift.TemplateParameters{
 		"BRANCH_NAME": event.HeadRef}
 }
