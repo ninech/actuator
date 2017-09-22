@@ -59,21 +59,21 @@ func TestHandleEventActionOpened(t *testing.T) {
 		message, err := handler.HandleEvent()
 		assert.Nil(t, err)
 		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
-		assert.Equal(t, config.GetRepositoryConfig(*event.Repo.FullName).Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
+		assert.Equal(t, config.GetRepositoryConfig(event.RepositoryFullname).Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
 
 		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
-		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/branch"], event.PullRequest.Head.GetRef())
-		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/branch"], event.HeadRef)
+		assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.IssueNumber))
 
 		assert.Equal(t, openshiftClient.AppliedParameters["BRANCH_NAME"], "pr-1")
 	})
 
-	t.Run("writes a comment on openshift", func(t *testing.T) {
+	t.Run("writes a comment on github", func(t *testing.T) {
 		handler.HandleEvent()
 		githubComment := githubClient.LastComment
 		assert.NotNil(t, githubComment, "creates a comment on github")
 		assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
-		assert.Equal(t, "https://github.com/ninech/actuator/issues/1408#issuecomment-330230087", githubComment.GetHTMLURL())
+		assert.Equal(t, "https://github.com/ninech/actuator/issues/1#issuecomment-330230087", githubComment.GetHTMLURL())
 	})
 
 	t.Run("posts the url as comment", func(t *testing.T) {
@@ -102,6 +102,6 @@ func TestHandleEventActionClosed(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, "Event for pull request #1 received. Thank you.", message)
-		assert.Equal(t, openshiftClient.DeletedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.PullRequest.GetNumber()))
+		assert.Equal(t, openshiftClient.DeletedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.IssueNumber))
 	})
 }

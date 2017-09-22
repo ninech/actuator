@@ -53,11 +53,12 @@ func (e *EventEndpoint) Handle() (int, interface{}) {
 	return 200, gin.H{"message": message}
 }
 
-func (e *EventEndpoint) getHandlerForEvent(event interface{}) EventHandler {
-	switch event := event.(type) {
-	case *github.PullRequestEvent:
-		return NewPullRequestEventHandler(event, Config)
-	default:
-		return &GenericEventHandler{}
+func (e *EventEndpoint) getHandlerForEvent(githubEvent interface{}) EventHandler {
+	if event, ok := github.ConvertGithubEvent(githubEvent); ok {
+		switch event.Type {
+		case github.PullRequestEvent:
+			return NewPullRequestEventHandler(event, Config)
+		}
 	}
+	return &GenericEventHandler{}
 }
