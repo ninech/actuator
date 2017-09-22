@@ -52,8 +52,7 @@ func (e *WebhookEngine) endpointHealth(c *gin.Context) {
 }
 
 func (e *WebhookEngine) endpointEvent(c *gin.Context) {
-	parser := GithubWebhookParser{request: c.Request}
-	eventEndpoint := EventEndpoint{WebhookParser: &parser}
+	eventEndpoint := NewEventEndpoint(c.Request)
 	code, message := eventEndpoint.Handle()
 	c.JSON(code, message)
 }

@@ -1,9 +1,15 @@
 package actuator
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
-	"github.com/google/go-github/github"
+	"github.com/ninech/actuator/github"
 )
+
+type WebhookParser interface {
+	ValidateAndParseWebhook(*http.Request) (interface{}, error)
+}
 
 // EventHandler defines an interface for all event handlers
 type EventHandler interface {
@@ -15,18 +21,20 @@ type EventHandler interface {
 type EventEndpoint struct {
 	WebhookParser WebhookParser
 	EventHandler  EventHandler
+	Request       *http.Request
 }
 
 // NewEventEndpoint produces a new endpoint to handle github events
-func NewEventEndpoint() *EventEndpoint {
+func NewEventEndpoint(request *http.Request) *EventEndpoint {
+	parser := github.NewWebhookParser(Config.GithubWebhookSecret)
 	return &EventEndpoint{
-		WebhookParser: &GithubWebhookParser{},
-		EventHandler:  &GenericEventHandler{}}
+		WebhookParser: parser,
+		Request:       request}
 }
 
 // Handle parses the request into a github event and handles it
 func (e *EventEndpoint) Handle() (int, interface{}) {
-	event, err := e.WebhookParser.ValidateAndParseWebhook()
+	event, err := e.WebhookParser.ValidateAndParseWebhook(e.Request)
 	if err != nil {
 		return 400, gin.H{"message": err.Error()}
 	}
@@ -44,11 +52,12 @@ func (e *EventEndpoint) Handle() (int, interface{}) {
 	return 200, gin.H{"message": message}
 }
 
-func (e *EventEndpoint) getHandlerForEvent(event interface{}) EventHandler {
-	switch event := event.(type) {
-	case *github.PullRequestEvent:
-		return NewPullRequestEventHandler(event, Config)
-	default:
-		return &GenericEventHandler{}
+func (e *EventEndpoint) getHandlerForEvent(githubEvent interface{}) EventHandler {
+	if event, ok := github.ConvertGithubEvent(githubEvent); ok {
+		switch event.Type {
+		case github.PullRequestEvent:
+			return NewPullRequestEventHandler(event, Config)
+		}
 	}
+	return &GenericEventHandler{}
 }

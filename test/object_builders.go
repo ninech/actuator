@@ -3,25 +3,22 @@ package test
 import (
 	"strings"
 
-	"github.com/google/go-github/github"
-
 	"github.com/ninech/actuator/actuator"
+	"github.com/ninech/actuator/github"
 )
 
-func NewTestEvent(number int, action string, repoName string) *github.PullRequestEvent {
-	ownerName := "ninech"
-	owner := github.User{Login: &ownerName}
-	name := strings.Split(repoName, "/")[1]
-	repo := github.Repository{FullName: &repoName, Name: &name, Owner: &owner}
-
-	branchName := "pr-1"
-	prNumber := 1408
-	pr := github.PullRequest{Number: &prNumber, Head: &github.PullRequestBranch{Ref: &branchName}}
-
-	return &github.PullRequestEvent{Action: &action, Number: &number, Repo: &repo, PullRequest: &pr}
+func NewTestEvent(number int, action string, repoName string) *github.Event {
+	return &github.Event{
+		Action:             action,
+		IssueNumber:        number,
+		RepositoryName:     strings.Split(repoName, "/")[1],
+		RepositoryFullname: repoName,
+		RepositoryOwner:    "ninech",
+		HeadRef:            "pr-1",
+		Type:               github.PullRequestEvent}
 }
 
-func NewDefaultTestEvent() *github.PullRequestEvent {
+func NewDefaultTestEvent() *github.Event {
 	return NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
 }
 
