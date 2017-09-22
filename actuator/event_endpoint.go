@@ -1,9 +1,15 @@
 package actuator
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
-	"github.com/google/go-github/github"
+	"github.com/ninech/actuator/github"
 )
+
+type WebhookParser interface {
+	ValidateAndParseWebhook(*http.Request) (interface{}, error)
+}
 
 // EventHandler defines an interface for all event handlers
 type EventHandler interface {
@@ -15,18 +21,21 @@ type EventHandler interface {
 type EventEndpoint struct {
 	WebhookParser WebhookParser
 	EventHandler  EventHandler
+	Request       *http.Request
 }
 
 // NewEventEndpoint produces a new endpoint to handle github events
-func NewEventEndpoint() *EventEndpoint {
+func NewEventEndpoint(request *http.Request) *EventEndpoint {
+	parser := github.NewWebhookParser(Config.GithubWebhookSecret)
 	return &EventEndpoint{
-		WebhookParser: &GithubWebhookParser{},
+		WebhookParser: parser,
+		Request:       request,
 		EventHandler:  &GenericEventHandler{}}
 }
 
 // Handle parses the request into a github event and handles it
 func (e *EventEndpoint) Handle() (int, interface{}) {
-	event, err := e.WebhookParser.ValidateAndParseWebhook()
+	event, err := e.WebhookParser.ValidateAndParseWebhook(e.Request)
 	if err != nil {
 		return 400, gin.H{"message": err.Error()}
 	}

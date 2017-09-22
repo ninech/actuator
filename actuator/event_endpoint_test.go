@@ -13,7 +13,7 @@ import (
 )
 
 func TestValidateRequestFails(t *testing.T) {
-	parser := MockGithubWebhookParser{ValidRequest: false}
+	parser := MockWebhookParser{ValidRequest: false}
 	endpoint := actuator.EventEndpoint{WebhookParser: &parser}
 
 	code, message := endpoint.Handle()
@@ -23,7 +23,7 @@ func TestValidateRequestFails(t *testing.T) {
 
 func TestValidRequestPullRequestEvent(t *testing.T) {
 	handler := MockGithubEventHandler{Message: "success!"}
-	parser := MockGithubWebhookParser{ValidRequest: true}
+	parser := MockWebhookParser{ValidRequest: true}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
 		EventHandler:  &handler}
@@ -36,7 +36,7 @@ func TestValidRequestPullRequestEvent(t *testing.T) {
 
 func TestUnsupportedEventType(t *testing.T) {
 	handler := MockGithubEventHandler{Message: "unsupported!"}
-	parser := MockGithubWebhookParser{ValidRequest: true, Event: &github.IssueEvent{}}
+	parser := MockWebhookParser{ValidRequest: true, Event: &github.IssueEvent{}}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
 		EventHandler:  &handler}
@@ -50,7 +50,7 @@ func TestFailingEventHandler(t *testing.T) {
 	test.DisableLogging()
 
 	handler := MockGithubEventHandler{Error: errors.New("something went wrong")}
-	parser := MockGithubWebhookParser{ValidRequest: true}
+	parser := MockWebhookParser{ValidRequest: true}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
 		EventHandler:  &handler}
@@ -63,19 +63,19 @@ func TestFailingEventHandler(t *testing.T) {
 
 /// HELPERS ////
 
-type MockGithubWebhookParser struct {
+type MockWebhookParser struct {
 	ValidRequest bool
 	Event        interface{}
 }
 
-func (p *MockGithubWebhookParser) ValidateAndParseWebhook() (interface{}, error) {
+func (p *MockWebhookParser) ValidateAndParseWebhook(request *http.Request) (interface{}, error) {
 	if p.ValidRequest {
 		return p.Event, nil
 	}
 	return nil, errors.New("Request validation failed.")
 }
 
-func (p *MockGithubWebhookParser) SetEventData(number int, action string) {
+func (p *MockWebhookParser) SetEventData(number int, action string) {
 	p.Event = &github.PullRequestEvent{Number: &number, Action: &action}
 }
 
