@@ -22,7 +22,7 @@ func TestValidateRequestFails(t *testing.T) {
 }
 
 func TestValidRequestPullRequestEvent(t *testing.T) {
-	handler := MockGithubEventHandler{Message: "success!"}
+	handler := test.NewMockEventHandler("success!")
 	parser := MockWebhookParser{ValidRequest: true}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
@@ -35,7 +35,7 @@ func TestValidRequestPullRequestEvent(t *testing.T) {
 }
 
 func TestUnsupportedEventType(t *testing.T) {
-	handler := MockGithubEventHandler{Message: "unsupported!"}
+	handler := test.NewMockEventHandler("unsupported!")
 	parser := MockWebhookParser{ValidRequest: true, Event: &github.IssueEvent{}}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
@@ -77,17 +77,4 @@ func (p *MockWebhookParser) ValidateAndParseWebhook(request *http.Request) (inte
 
 func (p *MockWebhookParser) SetEventData(number int, action string) {
 	p.Event = &github.PullRequestEvent{Number: &number, Action: &action}
-}
-
-type MockGithubEventHandler struct {
-	Error   error
-	Message string
-}
-
-func (h *MockGithubEventHandler) HandleEvent() (string, error) {
-	message := h.Message
-	if message == "" {
-		message = h.Error.Error()
-	}
-	return message, h.Error
 }
