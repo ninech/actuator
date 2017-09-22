@@ -20,7 +20,7 @@ func TestPullRequestEventHandler(t *testing.T) {
 			event := test.NewTestEvent(1, github.EventActionOpened, "ninech/yoloproject")
 			handler := actuator.PullRequestEventHandler{Event: *event}
 
-			response := handler.GetEventResponse()
+			response := handler.GetEventResponse(event)
 			assert.False(t, response.HandleEvent)
 			assert.Equal(t, "Repository ninech/yoloproject is not configured or disabled. Doing nothing.", response.Message)
 		})
@@ -32,7 +32,7 @@ func TestPullRequestEventHandler(t *testing.T) {
 			event := test.NewTestEvent(1, github.EventActionOpened, actuator.Config.Repositories[0].Fullname)
 			handler := actuator.PullRequestEventHandler{Event: *event}
 
-			response := handler.GetEventResponse()
+			response := handler.GetEventResponse(event)
 			assert.False(t, response.HandleEvent)
 			assert.Equal(t, "Repository ninech/actuator is not configured or disabled. Doing nothing.", response.Message)
 		})
@@ -41,7 +41,7 @@ func TestPullRequestEventHandler(t *testing.T) {
 			event := test.NewTestEvent(1, "yolo", "ninech/actuator")
 			handler := actuator.PullRequestEventHandler{Event: *event}
 
-			response := handler.GetEventResponse()
+			response := handler.GetEventResponse(event)
 			assert.False(t, response.HandleEvent)
 			assert.Equal(t, "Event is not relevant and will be ignored.", response.Message)
 		})
@@ -65,7 +65,7 @@ func TestPullRequestEventHandler(t *testing.T) {
 				Openshift:        openshiftClient}
 
 			t.Run("applies the template in openshift", func(t *testing.T) {
-				handler.HandleEvent()
+				handler.HandleEvent(event)
 
 				assert.Equal(t, repositoryConfig.Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
 
@@ -77,7 +77,7 @@ func TestPullRequestEventHandler(t *testing.T) {
 			})
 
 			t.Run("writes a comment on github", func(t *testing.T) {
-				handler.HandleEvent()
+				handler.HandleEvent(event)
 				githubComment := githubClient.LastComment
 				assert.NotNil(t, githubComment, "creates a comment on github")
 				assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
@@ -86,7 +86,7 @@ func TestPullRequestEventHandler(t *testing.T) {
 
 			t.Run("posts the url as comment", func(t *testing.T) {
 				openshiftClient.NewAppOutputToReturn = openshift.NewAppOutput{Raw: `route "actuator" created`}
-				handler.HandleEvent()
+				handler.HandleEvent(event)
 
 				githubComment := githubClient.LastComment
 				assert.Equal(t, "Your environment is being set-up on Openshift. http://actuator.domain.com", githubComment.GetBody())
@@ -100,12 +100,10 @@ func TestPullRequestEventHandler(t *testing.T) {
 			event := test.NewTestEvent(1, github.EventActionClosed, "ninech/actuator")
 			openshiftClient := &test.OpenshiftMock{}
 
-			handler := actuator.PullRequestEventHandler{
-				Event:     *event,
-				Openshift: openshiftClient}
+			handler := actuator.PullRequestEventHandler{Openshift: openshiftClient}
 
 			t.Run("deletes the objects in openshift", func(t *testing.T) {
-				handler.HandleEvent()
+				handler.HandleEvent(event)
 
 				assert.Equal(t, openshiftClient.DeletedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.IssueNumber))
 			})

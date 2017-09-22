@@ -33,7 +33,8 @@ func NewPullRequestEventHandler(event github.Event) *PullRequestEventHandler {
 }
 
 // GetEventResponse validates the event and checks if it can be handled.
-func (h *PullRequestEventHandler) GetEventResponse() *EventResponse {
+func (h *PullRequestEventHandler) GetEventResponse(event *github.Event) *EventResponse {
+	h.Event = *event
 	response := &EventResponse{}
 
 	if h.Event.Type != github.PullRequestEvent {
@@ -57,7 +58,8 @@ func (h *PullRequestEventHandler) GetEventResponse() *EventResponse {
 }
 
 // HandleEvent handles a pull request event from github
-func (h *PullRequestEventHandler) HandleEvent() {
+func (h *PullRequestEventHandler) HandleEvent(event *github.Event) {
+	h.Event = *event
 	Logger.Printf("Starting to handle action %v.", h.Event.Action)
 
 	var err error
@@ -71,7 +73,7 @@ func (h *PullRequestEventHandler) HandleEvent() {
 	}
 
 	if err != nil {
-		Logger.Println(err.Error())
+		Logger.Printf("There were some errors while handling the event.\n%v", err)
 	} else {
 		Logger.Printf("%v action handled without errors.", h.Event.Action)
 	}
