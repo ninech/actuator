@@ -3,7 +3,16 @@ package actuator
 // GenericEventHandler is a simple event handler that does nothing
 type GenericEventHandler struct{}
 
-// HandleEvent just return a message that it does nothing
-func (h *GenericEventHandler) HandleEvent() (string, error) {
-	return "Not processing this type of event", nil
+func NewGenericEventHandler() *GenericEventHandler {
+	return &GenericEventHandler{}
+}
+
+// GetEventResponse just returns a generic message. The hook was received but doing nothing in this case.
+func (h *GenericEventHandler) GetEventResponse() *EventResponse {
+	return &EventResponse{Message: "Request received. Doing nothing."}
+}
+
+// HandleEvent does nothing
+func (h *GenericEventHandler) HandleEvent() {
+	return
 }

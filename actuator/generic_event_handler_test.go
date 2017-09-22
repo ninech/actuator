@@ -3,16 +3,21 @@ package actuator_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/ninech/actuator/actuator"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestHandleEvent(t *testing.T) {
-	handler := actuator.GenericEventHandler{}
+func TestGenericEventHandler(t *testing.T) {
+	t.Run("GetEventResponse", func(t *testing.T) {
+		handler := actuator.NewGenericEventHandler()
+		response := handler.GetEventResponse()
 
-	message, err := handler.HandleEvent()
+		assert.Equal(t, "Request received. Doing nothing.", response.Message)
+	})
 
-	assert.Equal(t, "Not processing this type of event", message)
-	assert.Nil(t, err)
+	t.Run("HandleEvent", func(t *testing.T) {
+		handler := actuator.NewGenericEventHandler()
+		handler.HandleEvent()
+	})
 }

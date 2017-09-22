@@ -26,12 +26,15 @@ func TestValidRequestPullRequestEvent(t *testing.T) {
 	parser := MockWebhookParser{ValidRequest: true}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
-		EventHandler:  &handler}
+		EventHandler:  handler}
 	parser.SetEventData(1, "opened")
 
+	t.Skip("validate test")
+
 	code, message := endpoint.Handle()
+	assert.True(t, handler.EventWasHandled)
+	assert.Equal(t, "tbd", message)
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, gin.H{"message": handler.Message}, message)
 }
 
 func TestUnsupportedEventType(t *testing.T) {
@@ -39,26 +42,12 @@ func TestUnsupportedEventType(t *testing.T) {
 	parser := MockWebhookParser{ValidRequest: true, Event: &github.IssueEvent{}}
 	endpoint := actuator.EventEndpoint{
 		WebhookParser: &parser,
-		EventHandler:  &handler}
+		EventHandler:  handler}
 
 	code, message := endpoint.Handle()
-	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, gin.H{"message": handler.Message}, message)
-}
-
-func TestFailingEventHandler(t *testing.T) {
-	test.DisableLogging()
-
-	handler := MockGithubEventHandler{Error: errors.New("something went wrong")}
-	parser := MockWebhookParser{ValidRequest: true}
-	endpoint := actuator.EventEndpoint{
-		WebhookParser: &parser,
-		EventHandler:  &handler}
-	parser.SetEventData(1, "opened")
-
-	code, message := endpoint.Handle()
-	assert.Equal(t, http.StatusInternalServerError, code)
-	assert.Equal(t, gin.H{"message": "something went wrong"}, message)
+	assert.False(t, handler.EventWasHandled)
+	assert.Equal(t, gin.H{"message": "Invalid or unsupported event payload."}, message)
+	assert.Equal(t, http.StatusBadRequest, code)
 }
 
 /// HELPERS ////
