@@ -11,15 +11,8 @@ import (
 	"github.com/ninech/actuator/openshift"
 )
 
-// SupportedPullRequestActions defines all pull request event actions which are supported by this app.
-const (
-	ActionOpened   = "opened"
-	ActionClosed   = "closed"
-	ActionReopened = "reopened"
-)
-
 // SupportedPullRequestActions defines all actions which are currently supported to be handled
-var SupportedPullRequestActions = [2]string{ActionOpened, ActionClosed}
+var SupportedPullRequestActions = [2]string{github.EventActionOpened, github.EventActionClosed}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {

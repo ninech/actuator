@@ -19,7 +19,7 @@ func NewTestEvent(number int, action string, repoName string) *github.Event {
 }
 
 func NewDefaultTestEvent() *github.Event {
-	return NewTestEvent(1, actuator.ActionOpened, "ninech/actuator")
+	return NewTestEvent(1, github.EventActionOpened, "ninech/actuator")
 }
 
 func NewDefaultConfig() actuator.Configuration {

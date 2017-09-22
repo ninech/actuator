@@ -23,6 +23,13 @@ type Event struct {
 	OriginalEvent interface{}
 }
 
+// SupportedPullRequestActions defines all pull request event actions which are supported by this app.
+const (
+	EventActionOpened   = "opened"
+	EventActionClosed   = "closed"
+	EventActionReopened = "reopened"
+)
+
 // ConvertGithubEvent turns an original Github Event into the internal structure
 func ConvertGithubEvent(original interface{}) (*Event, bool) {
 	switch event := original.(type) {
