@@ -16,21 +16,10 @@ var ensurePullRequestEventHandlerImplementsEventHandler actuator.EventHandler = 
 
 func TestPullRequestEventHandler(t *testing.T) {
 	t.Run("GetEventResponse", func(t *testing.T) {
-		t.Run("the event's repository is not configured", func(t *testing.T) {
-			event := test.NewTestEvent(1, github.EventActionOpened, "ninech/yoloproject")
-			handler := actuator.PullRequestEventHandler{Event: *event}
-
-			response := handler.GetEventResponse(event)
-			assert.False(t, response.HandleEvent)
-			assert.Equal(t, "Repository ninech/yoloproject is not configured or disabled. Doing nothing.", response.Message)
-		})
-
 		t.Run("the event repository is disabled in the config file", func(t *testing.T) {
-			actuator.Config = test.NewDefaultConfig()
-			actuator.Config.Repositories[0].Enabled = false
-
-			event := test.NewTestEvent(1, github.EventActionOpened, actuator.Config.Repositories[0].Fullname)
-			handler := actuator.PullRequestEventHandler{Event: *event}
+			event := test.NewDefaultTestEvent()
+			handler := actuator.PullRequestEventHandler{
+				RepositoryConfig: actuator.RepositoryConfig{Enabled: false}}
 
 			response := handler.GetEventResponse(event)
 			assert.False(t, response.HandleEvent)
@@ -39,11 +28,32 @@ func TestPullRequestEventHandler(t *testing.T) {
 
 		t.Run("the action is not supported", func(t *testing.T) {
 			event := test.NewTestEvent(1, "yolo", "ninech/actuator")
-			handler := actuator.PullRequestEventHandler{Event: *event}
+			handler := actuator.PullRequestEventHandler{}
 
 			response := handler.GetEventResponse(event)
 			assert.False(t, response.HandleEvent)
 			assert.Equal(t, "Event is not relevant and will be ignored.", response.Message)
+		})
+
+		t.Run("the event has the wrong type", func(t *testing.T) {
+			event := test.NewDefaultTestEvent()
+			event.Type = 999
+
+			handler := actuator.PullRequestEventHandler{}
+
+			response := handler.GetEventResponse(event)
+			assert.False(t, response.HandleEvent)
+			assert.Equal(t, "Invalid event for this handler.", response.Message)
+		})
+
+		t.Run("the event is valid and ready to be handled", func(t *testing.T) {
+			event := test.NewDefaultTestEvent()
+			handler := actuator.PullRequestEventHandler{
+				RepositoryConfig: actuator.RepositoryConfig{Enabled: true}}
+
+			response := handler.GetEventResponse(event)
+			assert.True(t, response.HandleEvent)
+			assert.Equal(t, "Event for pull request #1 received. Thank you.", response.Message)
 		})
 	})
 
@@ -59,7 +69,6 @@ func TestPullRequestEventHandler(t *testing.T) {
 			actuator.Config = test.NewDefaultConfig()
 
 			handler := actuator.PullRequestEventHandler{
-				Event:            *event,
 				RepositoryConfig: repositoryConfig,
 				GithubClient:     githubClient,
 				Openshift:        openshiftClient}
