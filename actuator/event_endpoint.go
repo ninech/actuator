@@ -29,8 +29,7 @@ func NewEventEndpoint(request *http.Request) *EventEndpoint {
 	parser := github.NewWebhookParser(Config.GithubWebhookSecret)
 	return &EventEndpoint{
 		WebhookParser: parser,
-		Request:       request,
-		EventHandler:  &GenericEventHandler{}}
+		Request:       request}
 }
 
 // Handle parses the request into a github event and handles it
