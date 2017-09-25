@@ -2,7 +2,7 @@
 
 # Actuator
 
-More documentation can be found at https://actuator.github.io.
+More documentation can be found at https://ninech.github.io/actuator.
 
 > **actuator** (noun  ac·tu·a·tor \ˈak-chə-ˌwā-tər, -shə-\ ) a mechanical device for moving or controlling something
 
