@@ -58,48 +58,50 @@ func TestPullRequestEventHandler(t *testing.T) {
 	})
 
 	t.Run("HandleEvent", func(t *testing.T) {
-		t.Run("EventActionOpened", func(t *testing.T) {
+		t.Run("EventActionOpened, EventActionReopened", func(t *testing.T) {
 			test.DisableLogging()
 
-			event := test.NewTestEvent(1, github.EventActionOpened, "ninech/actuator")
-			githubClient := test.NewMockGithubClient()
-			openshiftClient := &test.OpenshiftMock{}
-			repositoryConfig := actuator.RepositoryConfig{Template: "actuator-template"}
+			for _, action := range [2]string{"opened", "reopened"} {
+				event := test.NewTestEvent(1, action, "ninech/actuator")
+				githubClient := test.NewMockGithubClient()
+				openshiftClient := &test.OpenshiftMock{}
+				repositoryConfig := actuator.RepositoryConfig{Template: "actuator-template"}
 
-			actuator.Config = test.NewDefaultConfig()
+				actuator.Config = test.NewDefaultConfig()
 
-			handler := actuator.PullRequestEventHandler{
-				RepositoryConfig: repositoryConfig,
-				GithubClient:     githubClient,
-				Openshift:        openshiftClient}
+				handler := actuator.PullRequestEventHandler{
+					RepositoryConfig: repositoryConfig,
+					GithubClient:     githubClient,
+					Openshift:        openshiftClient}
 
-			t.Run("applies the template in openshift", func(t *testing.T) {
-				handler.HandleEvent(event)
+				t.Run("applies the template in openshift", func(t *testing.T) {
+					handler.HandleEvent(event)
 
-				assert.Equal(t, repositoryConfig.Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
+					assert.Equal(t, repositoryConfig.Template, openshiftClient.AppliedTemplate, "it instantiates the template from the config")
 
-				assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
-				assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/branch"], event.HeadRef)
-				assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.IssueNumber))
+					assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/create-reason"], "GithubWebhook")
+					assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/branch"], event.HeadRef)
+					assert.Equal(t, openshiftClient.AppliedLabels["actuator.nine.ch/pull-request"], strconv.Itoa(event.IssueNumber))
 
-				assert.Equal(t, openshiftClient.AppliedParameters["BRANCH_NAME"], "pr-1")
-			})
+					assert.Equal(t, openshiftClient.AppliedParameters["BRANCH_NAME"], "pr-1")
+				})
 
-			t.Run("writes a comment on github", func(t *testing.T) {
-				handler.HandleEvent(event)
-				githubComment := githubClient.LastComment
-				assert.NotNil(t, githubComment, "creates a comment on github")
-				assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
-				assert.Equal(t, "https://github.com/ninech/actuator/issues/1#issuecomment-330230087", githubComment.GetHTMLURL())
-			})
+				t.Run("writes a comment on github", func(t *testing.T) {
+					handler.HandleEvent(event)
+					githubComment := githubClient.LastComment
+					assert.NotNil(t, githubComment, "creates a comment on github")
+					assert.Equal(t, "Your environment is being set-up on Openshift. There is no route I can point you to.", githubComment.GetBody())
+					assert.Equal(t, "https://github.com/ninech/actuator/issues/1#issuecomment-330230087", githubComment.GetHTMLURL())
+				})
 
-			t.Run("posts the url as comment", func(t *testing.T) {
-				openshiftClient.NewAppOutputToReturn = openshift.NewAppOutput{Raw: `route "actuator" created`}
-				handler.HandleEvent(event)
+				t.Run("posts the url as comment", func(t *testing.T) {
+					openshiftClient.NewAppOutputToReturn = openshift.NewAppOutput{Raw: `route "actuator" created`}
+					handler.HandleEvent(event)
 
-				githubComment := githubClient.LastComment
-				assert.Equal(t, "Your environment is being set-up on Openshift. http://actuator.domain.com", githubComment.GetBody())
-			})
+					githubComment := githubClient.LastComment
+					assert.Equal(t, "Your environment is being set-up on Openshift. http://actuator.domain.com", githubComment.GetBody())
+				})
+			}
 		})
 
 		t.Run("EventActionClosed", func(t *testing.T) {
