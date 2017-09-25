@@ -62,11 +62,9 @@ func (h *PullRequestEventHandler) HandleEvent(event *github.Event) {
 	switch event.Action {
 	case github.EventActionOpened:
 		err = h.HandleActionOpened(event)
-		break
 	case github.EventActionClosed:
 		labels := openshift.ObjectLabels{"actuator.nine.ch/pull-request": strconv.Itoa(event.IssueNumber)}
 		err = h.DeleteEnvironmentOnOpenshift(&labels)
-		break
 	}
 
 	if err != nil {
