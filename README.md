@@ -2,59 +2,14 @@
 
 # Actuator
 
+More documentation can be found at https://actuator.github.io.
+
 > **actuator** (noun  ac·tu·a·tor \ˈak-chə-ˌwā-tər, -shə-\ ) a mechanical device for moving or controlling something
 
 Actuator keeps an eye on your Github pull-requests and automatically spawns staging environments in Openshift.
 
 It's in a very early stage of development. Some people would say it's just a prototype. So please come back later if you're interested in using Actuator.
 
-```sh
-$ actuator
-Hello, I am actuator!
-[GIN] 2017/08/25 - 09:04:54 | 200 | 506.684µs | ::1 | GET /v1/health
-```
-
-## Configuration
-
-Most of the configuration happens in `actuator.yml`. There is an example config in this repo.
-
-You can also configure some values via environment variables:
-
-| Config                         | Description     |
-| :----------------------------- | :-------------- |
-| `ACTUATOR_WEBHOOK_SECRET`      | The webhook secret you share with Github. |
-| `ACTUATOR_GITHUB_ACCESS_TOKEN` | The Github access token to create comments on Github. |
-
-Environment variables take precedence of configurations from the config file!
-
-## Openshift
-
-### Deploy Actuator
-
-Actuator can easily be deployed with the provided Openshift template.
-
-    oc process -f https://raw.githubusercontent.com/ninech/actuator/master/template.yml -p ACTUATOR_DOMAIN=actuator.example.com -p GITHUB_ACCESS_TOKEN=<secret token from github> | oc create -f -
-    oc policy add-role-to-user edit -z actuator
-
-After that you can change Actuator's configuration. Every change to the config needs a new deployment.
-
-    oc edit cm actuator
-    oc rollout latest actuator
-
-### Template Parameters
-
-The following parameters can be used in a template. They get automatically filled.
-
-| Parameter          | Description     |
-| :----------------- | :-------------- |
-| `BRANCH_NAME`      | The name of the pull request branch. This is provided by the Github webhook event. |
-
-## API
-
-| Endpoint           | Description     |
-| :----------------- | :-------------- |
-| `GET /v1/health`   | Returns status code `200` and a JSON formatted message if the server is running. |
-| `POST /v1/event`   | Post a [Github Pull Request event](https://developer.github.com/v3/activity/events/types/#pullrequestevent) and trigger the appropriate action. |
 
 ## Development
 
@@ -66,9 +21,11 @@ Because the event handler validates the HTTP request, there is a wrapper script 
 
     examples/send-event.rb -f examples/pull-request-event-opened.json -s supersecret
 
+    examples/send-event.rb -f examples/pull-request-event-closed.json -s supersecret
+
 ### Test template
 
-First in your Openshift project import the sample template:
+Import the sample template into your Openshift project:
 
     oc create -f examples/test-template.yml
 
