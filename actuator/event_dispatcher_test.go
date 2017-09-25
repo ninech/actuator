@@ -42,6 +42,15 @@ func TestEventDispatcher(t *testing.T) {
 			assert.IsType(t, &actuator.PullRequestEventHandler{}, handler)
 		})
 
+		t.Run("PingEvent", func(t *testing.T) {
+			event.Type = github.PingEvent
+			dispatcher := actuator.EventDispatcher{}
+
+			handler := dispatcher.FindEventHandler(event)
+
+			assert.IsType(t, &actuator.PingEventHandler{}, handler)
+		})
+
 		t.Run("any other event type", func(t *testing.T) {
 			event.Type = 999
 			dispatcher := actuator.EventDispatcher{}
