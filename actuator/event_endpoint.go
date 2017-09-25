@@ -7,6 +7,7 @@ import (
 	"github.com/ninech/actuator/github"
 )
 
+// WebhookParser defines the interface of a parser of incomming data
 type WebhookParser interface {
 	ValidateAndParseWebhook(*http.Request) (interface{}, error)
 }
@@ -43,7 +44,7 @@ func (e *EventEndpoint) Handle() (int, interface{}) {
 	response := e.EventHandler.GetEventResponse(event)
 
 	if response.HandleEvent {
-		e.EventHandler.HandleEvent(event)
+		go e.EventHandler.HandleEvent(event)
 	}
 
 	return 200, gin.H{"message": response.Message}
