@@ -11,7 +11,10 @@ import (
 )
 
 // SupportedPullRequestActions defines all actions which are currently supported to be handled
-var SupportedPullRequestActions = [2]string{github.EventActionOpened, github.EventActionClosed}
+var SupportedPullRequestActions = [3]string{
+	github.EventActionOpened,
+	github.EventActionClosed,
+	github.EventActionReopened}
 
 // PullRequestEventHandler handles pull request events
 type PullRequestEventHandler struct {
@@ -60,7 +63,7 @@ func (h *PullRequestEventHandler) HandleEvent(event *github.Event) {
 
 	var err error
 	switch event.Action {
-	case github.EventActionOpened:
+	case github.EventActionOpened, github.EventActionReopened:
 		err = h.HandleActionOpened(event)
 	case github.EventActionClosed:
 		labels := openshift.ObjectLabels{"actuator.nine.ch/pull-request": strconv.Itoa(event.IssueNumber)}
@@ -74,6 +77,7 @@ func (h *PullRequestEventHandler) HandleEvent(event *github.Event) {
 	}
 }
 
+// HandleActionOpened is called when we receive an opened or reopened event from Github
 func (h *PullRequestEventHandler) HandleActionOpened(event *github.Event) error {
 	output, err := h.CreateEnvironmentOnOpenshift(event)
 	if err != nil {
@@ -86,6 +90,7 @@ func (h *PullRequestEventHandler) HandleActionOpened(event *github.Event) error 
 	return h.PostCommentOnGithub(event, comment)
 }
 
+// CreateEnvironmentOnOpenshift does everything necessary to create the environment on openshift
 func (h *PullRequestEventHandler) CreateEnvironmentOnOpenshift(event *github.Event) (*openshift.NewAppOutput, error) {
 	template := h.RepositoryConfig.Template
 	labels := buildLabelsFromEvent(event)
