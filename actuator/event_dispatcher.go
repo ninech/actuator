@@ -58,6 +58,8 @@ func (d *EventDispatcher) FindEventHandler(event *github.Event) EventHandler {
 	switch event.Type {
 	case github.PullRequestEvent:
 		return NewPullRequestEventHandler(*event)
+	case github.PingEvent:
+		return NewPingEventHandler()
 	default:
 		return NewGenericEventHandler()
 	}

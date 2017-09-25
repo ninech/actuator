@@ -8,6 +8,7 @@ type EventType int
 
 const (
 	PullRequestEvent EventType = iota
+	PingEvent
 )
 
 // Event is the internal structure used for an event
@@ -35,6 +36,8 @@ func ConvertGithubEvent(original interface{}) (*Event, bool) {
 	switch event := original.(type) {
 	case *gh.PullRequestEvent:
 		return convertPullRequestEvent(event), true
+	case *gh.PingEvent:
+		return &Event{Type: PingEvent, OriginalEvent: original}, true
 	default:
 		return nil, false
 	}

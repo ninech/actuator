@@ -1,0 +1,31 @@
+{
+  "zen": "Non-blocking is better than blocking.",
+  "hook_id": 16288669,
+  "hook": {
+    "type": "Repository",
+    "id": 16288669,
+    "name": "web",
+    "active": true,
+    "events": [
+      "pull_request"
+    ],
+    "config": {
+      "content_type": "json",
+      "insecure_ssl": "0",
+      "secret": "********",
+      "url": "http://actuator.openshift-apps.staging.nine.ch"
+    },
+    "updated_at": "2017-09-21T07:36:48Z",
+    "created_at": "2017-09-21T07:36:48Z",
+    "url": "https://api.github.com/repos/ninech/actuator-demo/hooks/16288669",
+    "test_url": "https://api.github.com/repos/ninech/actuator-demo/hooks/16288669/test",
+    "ping_url": "https://api.github.com/repos/ninech/actuator-demo/hooks/16288669/pings",
+    "last_response": {
+      "code": null,
+      "status": "unused",
+      "message": null
+    }
+  },
+  "repository": {},
+  "sender": {}
+}

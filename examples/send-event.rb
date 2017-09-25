@@ -4,7 +4,7 @@ require 'optparse'
 require 'openssl'
 require 'base64'
 
-Options = Struct.new(:filename, :secret)
+Options = Struct.new(:filename, :secret, :event)
 
 class Parser
   def self.parse(options)
@@ -21,6 +21,10 @@ class Parser
         args.secret = secret
       end
 
+      opts.on("-eEVENT", "--event=EVENT", "Webhook event (default: pull_request)") do |event|
+        args.event = event
+      end
+
       opts.on("-h", "--help", "Prints this help") do
         puts opts
         exit
@@ -35,17 +39,22 @@ end
 class WebhookShot
   attr_accessor :filename, :secret
 
-  def initialize(filename, secret)
-    @filename = filename
-    @secret = secret
+  def initialize(options)
+    @filename = options.filename
+    @secret = options.secret
+    @event = options.event
   end
 
   def shoot
     system <<-CMD
   http POST localhost:8080/v1/event @#{filename} \
     'X-Hub-Signature:#{hmac_signature}' \
-    'X-Github-Event:pull_request'
+    'X-Github-Event:#{event}'
   CMD
+  end
+
+  def event
+    @event || "pull_request"
   end
 
   private
@@ -64,4 +73,4 @@ if options.filename.nil? || options.secret.nil?
   exit 1
 end
 
-WebhookShot.new(options.filename, options.secret).shoot
+WebhookShot.new(options).shoot
