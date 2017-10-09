@@ -32,3 +32,9 @@ Import the sample template into your Openshift project:
 Whenever this template is applied there will be a new ConfigMap with a partly random name `actuator-test-*` in your project. These ConfigMaps can be deleted with the following command:
 
     oc delete cm -l "actuator.nine.ch/create-reason"
+
+## About
+
+This tool is currently maintained and funded by [nine](https://nine.ch).
+
+[![logo of the company 'nine'](https://logo.apps.at-nine.ch/Dmqied_eSaoBMQwk3vVgn4UIgDo=/trim/500x0/logo_claim.png)](https://www.nine.ch)
